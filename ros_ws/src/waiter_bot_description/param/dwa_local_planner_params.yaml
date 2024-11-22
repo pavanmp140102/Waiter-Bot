@@ -1,0 +1,37 @@
+DWAPlannerROS:
+  max_vel_x: 0.2
+  min_vel_x: 0.0
+  max_vel_y: 0.2
+  min_vel_y: 0.0
+  max_vel_trans: 0.3
+  min_vel_trans: 0.1
+  trans_stopped_vel: 0.1
+  max_vel_theta: 0.4
+  min_vel_theta: 0.1
+  rot_stopped_vel: 0.4
+  acc_lim_x: 0.4
+  acc_lim_theta: 2.0
+  acc_lim_y: 0.2
+
+  yaw_goal_tolerance: 0.4
+  xy_goal_tolerance: 0.2
+
+  sim_time: 6.0
+  vx_samples: 12
+  vy_samples: 1
+  vtheta_samples: 20
+
+  path_distance_bias: 64.0
+  goal_distance_bias: 24.0
+  occdist_scale: 0.5
+  forward_point_distance: 0.325
+  stop_time_buffer: 0.2
+  scaling_speed: 0.25
+  max_scaling_factor: 0.2
+
+  oscillation_reset_dist: 0.05
+
+  publish_traj_pc: true
+  publish_cost_grid_pc: true
+  global_frame_id: odom
+
