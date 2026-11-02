@@ -10,7 +10,7 @@ How Waiter-Bot is rebuilt for ROS 2 Jazzy and Gazebo Harmonic: ten milestones, e
 | M1 | Robot | `waiter_bot` Xacro for Harmonic, bridges, an empty-world launch | S3, N1 on an empty world | [M1](M1_robot.md) |
 | M2 | World and map | Café world, location table, saved map | S3, S4 | [M2](M2_world_map.md) |
 | M3 | Navigation | Nav2 on Jazzy with AMCL and the map; trips between locations | N1 to N5 | [M3](M3_navigation.md) |
-| M4 | Task logic | `butler_fsm` and the `butler_task_manager` node | T1 to T20, TN1 to TN7, S6 | [M4](M4_task_logic.md) |
+| M4 | Task logic | `butler_fsm` and the `butler_task_manager` node | T1 to T24, TN1 to TN9, S6 | [M4](M4_task_logic.md) |
 | M5 | Integration | Whole-system launch, scenario runner, scenarios for R1 to R7 | E1 to E9 | [M5](M5_integration.md) |
 | M6 | Dashboard and visuals | Qt dashboard, RViz markers | MAN2 | [M6](M6_dashboard.md) |
 | M7 | Documentation and demo | README, per-requirement walkthroughs, recordings | MAN3 | [M7](M7_docs_demo.md) |

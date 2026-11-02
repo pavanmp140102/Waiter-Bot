@@ -1,0 +1,19 @@
+# Names, poses and timing for the café. Add a table by adding its name to `tables` and a pose
+# under `locations`; no code change is needed. Poses are in the map frame (metres, radians).
+butler_task_manager:
+  ros__parameters:
+    home: home
+    kitchen: kitchen
+    tables: [table1, table2, table3]
+    confirmation_timeout_sec: 20.0
+    require_kitchen_confirmation: true
+    require_table_confirmation: true
+    kitchen_return_dwell_sec: 0.0
+    nav_max_retries: 2
+    map_frame: map
+    locations:
+      home: {x: 0.0, y: 0.0, yaw: 0.0}
+      kitchen: {x: 4.0, y: 0.0, yaw: 0.0}
+      table1: {x: 1.5, y: 4.0, yaw: 1.57}
+      table2: {x: -1.5, y: 4.0, yaw: 1.57}
+      table3: {x: -4.5, y: 4.0, yaw: 1.57}

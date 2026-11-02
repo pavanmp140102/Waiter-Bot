@@ -36,9 +36,9 @@ R3b, R4b, R6 and R7 all follow from this rule, so the state machine implements t
 |---|---|---|
 | D-a | Orders arrive as one action goal with a list of tables | "Multiple orders" then means one batch. Queueing and batching across goals is stretch work (M9) |
 | D-b | While a task runs, a new goal is rejected with the reason `busy` | Predictable, and testable. Replaced by queueing in M9 |
-| D-c | A table cancelled **before** the kitchen pickup is removed from the load, so it does not count as onboard | Cancelling before pickup costs nothing. If every table is cancelled, the robot goes home |
+| D-c | A table cancelled **before** the kitchen pickup is removed from the load, so it does not count as onboard | Cancelling before pickup costs nothing. If every table is cancelled, the robot goes home and the outcome is `cancelled` |
 | D-d | Visiting order is the request order | Simple and predictable. Nearest-first ordering is stretch work (M9) |
-| D-e | A navigation failure is retried `nav_max_retries` times (default 2). Then: a table is skipped, the kitchen sends the robot home, and a failed trip home ends the task in the `error` state | The robot must never get stuck waiting silently |
+| D-e | A navigation failure is retried `nav_max_retries` times (default 2). Then: a table is skipped, an unreachable kitchen sends the robot home with the outcome `nav_failed`, and a failed trip home ends the task in the `error` state (a new goal is accepted from there) | The robot must never get stuck waiting silently |
 | D-f | On arrival at the kitchen for a return trip, the robot does not wait. It heads home at once, after an optional `kitchen_return_dwell_sec` (default 0) | The PDF only says "kitchen first before going to the home position" |
 | D-g | An unknown or duplicate table name rejects the goal | Fails fast with a clear message |
 
