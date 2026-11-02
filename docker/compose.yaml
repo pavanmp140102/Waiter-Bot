@@ -11,12 +11,13 @@ x-runtime-build: &runtime-build
   target: runtime
 
 services:
-  # Runs the fast tests (static checks, task logic, node tests) one package at a time, then
+  # Runs the fast tests (static checks, task logic, node tests; not the simulator tests, which carry
+  # the label `sim`) one package at a time, then
   # always prints the results. The exit code is non-zero if the tests or the summary fail.
   test:
     <<: *common
     build: *runtime-build
     image: waiter-bot:runtime
     command: >
-      bash -c "colcon test --executor sequential; rc=$$?;
+      bash -c "colcon test --executor sequential --ctest-args -LE sim; rc=$$?;
       colcon test-result --verbose || rc=1; exit $$rc"

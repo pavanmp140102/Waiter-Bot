@@ -1,0 +1,217 @@
+<?xml version="1.0"?>
+<!--
+  Waiter-Bot for Gazebo Harmonic: a four-wheel skid-steer base with a tall tray tower, a lidar and
+  a front camera. Frames: base_footprint (on the floor) -> base_link (at wheel-axle height).
+  Looks come from the original meshes (millimetres, scaled to metres); physics is rebuilt from
+  boxes and cylinders, with masses and inertias computed from the dimensions below.
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="waiter_bot">
+  <xacro:arg name="camera" default="true"/>
+
+  <!-- Dimensions in metres, measured from the original meshes (ground-origin coordinates) -->
+  <xacro:property name="wheel_radius" value="0.0635"/>
+  <xacro:property name="wheel_width" value="0.0254"/>
+  <xacro:property name="wheel_x" value="0.125"/>
+  <xacro:property name="wheel_y" value="0.165"/>
+  <xacro:property name="wheel_mass" value="0.8"/>
+  <!-- Friction along the wheel axle: low, so the four-wheel base can skid round in a turn -->
+  <xacro:property name="lateral_mu" value="0.05"/>
+  <xacro:property name="body_x" value="0.567"/>
+  <xacro:property name="body_y" value="0.537"/>
+  <!-- Low chassis (batteries, drive) and tower (trays), with a gap between for the lidar plane -->
+  <xacro:property name="chassis_mass" value="12.0"/>
+  <xacro:property name="chassis_bottom" value="0.02"/>
+  <xacro:property name="chassis_top" value="0.19"/>
+  <xacro:property name="tower_mass" value="8.0"/>
+  <xacro:property name="tower_bottom" value="0.25"/>
+  <xacro:property name="tower_top" value="1.30"/>
+  <xacro:property name="tower_x" value="0.50"/>
+  <xacro:property name="tower_y" value="0.50"/>
+  <xacro:property name="lidar_x" value="0.1834"/>
+  <xacro:property name="lidar_z" value="0.2112"/>
+  <xacro:property name="camera_x" value="0.2575"/>
+  <xacro:property name="camera_z" value="1.112"/>
+
+  <!-- Derived: heights above the floor, then the combined centre of mass and inertia -->
+  <xacro:property name="chassis_h" value="${chassis_top - chassis_bottom}"/>
+  <xacro:property name="chassis_z" value="${(chassis_top + chassis_bottom) / 2}"/>
+  <xacro:property name="tower_h" value="${tower_top - tower_bottom}"/>
+  <xacro:property name="tower_z" value="${(tower_top + tower_bottom) / 2}"/>
+  <xacro:property name="body_mass" value="${chassis_mass + tower_mass}"/>
+  <xacro:property name="com_z" value="${(chassis_mass * chassis_z + tower_mass * tower_z) / body_mass}"/>
+  <xacro:property name="ixx_chassis" value="${chassis_mass * (body_y**2 + chassis_h**2) / 12}"/>
+  <xacro:property name="iyy_chassis" value="${chassis_mass * (body_x**2 + chassis_h**2) / 12}"/>
+  <xacro:property name="izz_chassis" value="${chassis_mass * (body_x**2 + body_y**2) / 12}"/>
+  <xacro:property name="ixx_tower" value="${tower_mass * (tower_y**2 + tower_h**2) / 12}"/>
+  <xacro:property name="iyy_tower" value="${tower_mass * (tower_x**2 + tower_h**2) / 12}"/>
+  <xacro:property name="izz_tower" value="${tower_mass * (tower_x**2 + tower_y**2) / 12}"/>
+  <xacro:property name="d_chassis" value="${chassis_z - com_z}"/>
+  <xacro:property name="d_tower" value="${tower_z - com_z}"/>
+
+  <material name="body"><color rgba="0.75 0.75 0.78 1"/></material>
+  <material name="wheel"><color rgba="0.1 0.1 0.1 1"/></material>
+  <material name="sensor"><color rgba="0.2 0.2 0.25 1"/></material>
+
+  <link name="base_footprint"/>
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 ${wheel_radius}"/>
+  </joint>
+
+  <!-- base_link sits at wheel-axle height; the original meshes have the floor at z = 0 -->
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0 0 ${com_z - wheel_radius}"/>
+      <mass value="${body_mass}"/>
+      <inertia ixx="${ixx_chassis + chassis_mass * d_chassis**2 + ixx_tower + tower_mass * d_tower**2}"
+               iyy="${iyy_chassis + chassis_mass * d_chassis**2 + iyy_tower + tower_mass * d_tower**2}"
+               izz="${izz_chassis + izz_tower}" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 ${-wheel_radius}"/>
+      <geometry><mesh filename="package://waiter_bot_description/meshes/base_link.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="body"/>
+    </visual>
+    <collision name="chassis_collision">
+      <origin xyz="0 0 ${chassis_z - wheel_radius}"/>
+      <geometry><box size="${body_x} ${body_y} ${chassis_h}"/></geometry>
+    </collision>
+    <collision name="tower_collision">
+      <origin xyz="0 0 ${tower_z - wheel_radius}"/>
+      <geometry><box size="${tower_x} ${tower_y} ${tower_h}"/></geometry>
+    </collision>
+  </link>
+
+  <!-- One macro per wheel: prefix is lf, rf, lb or rb; sx and sy are the signs of its x and y -->
+  <xacro:macro name="wheel" params="prefix mesh sx sy">
+    <link name="${prefix}_wheel">
+      <inertial>
+        <mass value="${wheel_mass}"/>
+        <inertia ixx="${wheel_mass * (3 * wheel_radius**2 + wheel_width**2) / 12}" ixy="0" ixz="0"
+                 iyy="${wheel_mass * wheel_radius**2 / 2}" iyz="0"
+                 izz="${wheel_mass * (3 * wheel_radius**2 + wheel_width**2) / 12}"/>
+      </inertial>
+      <visual>
+        <origin xyz="${-sx * wheel_x} ${-sy * wheel_y} ${-wheel_radius}"/>
+        <geometry><mesh filename="package://waiter_bot_description/meshes/${mesh}" scale="0.001 0.001 0.001"/></geometry>
+        <material name="wheel"/>
+      </visual>
+      <collision>
+        <origin rpy="${pi / 2} 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+      </collision>
+    </link>
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${prefix}_wheel"/>
+      <origin xyz="${sx * wheel_x} ${sy * wheel_y} 0"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+    <!-- Low sideways friction lets the four-wheel base turn on the spot -->
+    <gazebo reference="${prefix}_wheel">
+      <mu1>1.0</mu1>
+      <mu2>${lateral_mu}</mu2>
+      <fdir1>1 0 0</fdir1>
+    </gazebo>
+  </xacro:macro>
+  <xacro:wheel prefix="lf" mesh="LF_wheel_1.stl" sx="1" sy="1"/>
+  <xacro:wheel prefix="rf" mesh="RF_wheel_1.stl" sx="1" sy="-1"/>
+  <xacro:wheel prefix="lb" mesh="LB_wheel_1.stl" sx="-1" sy="1"/>
+  <xacro:wheel prefix="rb" mesh="RB_wheel_1.stl" sx="-1" sy="-1"/>
+
+  <link name="lidar_link">
+    <visual>
+      <origin xyz="${-lidar_x} 0 ${-lidar_z}"/>
+      <geometry><mesh filename="package://waiter_bot_description/meshes/lidar_1.stl" scale="0.001 0.001 0.001"/></geometry>
+      <material name="sensor"/>
+    </visual>
+  </link>
+  <joint name="lidar_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="lidar_link"/>
+    <origin xyz="${lidar_x} 0 ${lidar_z - wheel_radius}"/>
+  </joint>
+
+  <xacro:if value="$(arg camera)">
+    <link name="camera_link">
+      <visual>
+        <origin xyz="${-camera_x} 0 ${-camera_z}"/>
+        <geometry><mesh filename="package://waiter_bot_description/meshes/front_camera_1.stl" scale="0.001 0.001 0.001"/></geometry>
+        <material name="sensor"/>
+      </visual>
+    </link>
+    <joint name="camera_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="camera_link"/>
+      <origin xyz="${camera_x} 0 ${camera_z - wheel_radius}"/>
+    </joint>
+    <gazebo reference="camera_link">
+      <sensor name="front_camera" type="camera">
+        <always_on>true</always_on>
+        <update_rate>15</update_rate>
+        <topic>camera/image_raw</topic>
+        <gz_frame_id>camera_link</gz_frame_id>
+        <camera>
+          <horizontal_fov>1.2</horizontal_fov>
+          <image><width>640</width><height>480</height><format>R8G8B8</format></image>
+          <clip><near>0.1</near><far>15</far></clip>
+        </camera>
+      </sensor>
+    </gazebo>
+  </xacro:if>
+
+  <gazebo reference="lidar_link">
+    <sensor name="lidar" type="gpu_lidar">
+      <always_on>true</always_on>
+      <update_rate>10</update_rate>
+      <topic>scan</topic>
+      <gz_frame_id>lidar_link</gz_frame_id>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+        </scan>
+        <range><min>0.12</min><max>8.0</max></range>
+      </ray>
+    </sensor>
+  </gazebo>
+
+  <gazebo>
+    <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
+      <left_joint>lf_wheel_joint</left_joint>
+      <left_joint>lb_wheel_joint</left_joint>
+      <right_joint>rf_wheel_joint</right_joint>
+      <right_joint>rb_wheel_joint</right_joint>
+      <wheel_separation>${2 * wheel_y}</wheel_separation>
+      <wheel_radius>${wheel_radius}</wheel_radius>
+      <max_linear_velocity>1.0</max_linear_velocity>
+      <max_angular_velocity>1.5</max_angular_velocity>
+      <max_linear_acceleration>1.0</max_linear_acceleration>
+      <max_angular_acceleration>2.0</max_angular_acceleration>
+      <topic>cmd_vel</topic>
+      <odom_topic>odom</odom_topic>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_footprint</child_frame_id>
+      <odom_publisher_frequency>30</odom_publisher_frequency>
+      <tf_topic>/tf</tf_topic>
+    </plugin>
+    <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+      <topic>joint_states</topic>
+      <joint_name>lf_wheel_joint</joint_name>
+      <joint_name>rf_wheel_joint</joint_name>
+      <joint_name>lb_wheel_joint</joint_name>
+      <joint_name>rb_wheel_joint</joint_name>
+    </plugin>
+    <!-- True pose of the robot in the world, for tests only: nothing at run time subscribes -->
+    <plugin filename="gz-sim-pose-publisher-system" name="gz::sim::systems::PosePublisher">
+      <publish_link_pose>false</publish_link_pose>
+      <publish_model_pose>true</publish_model_pose>
+      <use_pose_vector_msg>false</use_pose_vector_msg>
+      <static_publisher>false</static_publisher>
+    </plugin>
+  </gazebo>
+</robot>

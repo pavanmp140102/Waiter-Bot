@@ -26,7 +26,7 @@ Measured from Gazebo ground truth after the robot has been stationary for one se
 |---|---|---|
 | S1 | `colcon build --symlink-install` | Succeeds, no warnings from `waiter_bot_*` packages |
 | S2 | `ament_flake8`, `ament_pep257`, `ament_copyright`, `ament_xmllint`, `ament_cmake_lint` on all packages | Clean |
-| S3 | `xacro` then `check_urdf` on the robot; `gz sdf -k` on the world and every model | All parse without errors |
+| S3 | `xacro` then `check_urdf` on the robot, with the right wheel joints, sensors, masses and mesh files; `gz sdf -k` on every world and model | All parse without errors |
 | S4 | Locations in `cafe.yaml` against the world and the map | Each location is a free map cell with 0.4 m clearance, and matches the matching entity in `cafe.sdf` within 0.05 m |
 | S5 | `grep` for `/home/`, `ros_ws`, `defect_bot`, the author's user name and other absolute or foreign paths in `src/`, `docker/` and the root config files (the docs may mention them when describing the old submission) | No matches |
 | S6 | `waiter_bot_core/butler_fsm.py` and `locations.py` import nothing from `rclpy` or ROS packages | Pass |
@@ -83,7 +83,9 @@ All feed events into the state machine and compare the returned commands, state,
 
 | ID | Check | Pass criterion |
 |---|---|---|
-| N1 | Simulation starts headless; `/scan` at 10 Hz, `/odom`, `odom -> base_link` TF | Pass within 60 s |
+| N1 | Simulation starts headless; `/scan` at 10 Hz in simulated time with frame `lidar_link`, `/clock` advancing, TF `odom -> lidar_link` connected, the robot at rest on the floor | Pass within 60 s of launch |
+| N1b | Drive forward 0.3 m/s for 3 s of simulated time | True distance above 0.7 m, within 5 percent of the odometry's, and straight within 0.05 rad |
+| N1c | Turn on the spot at 1 rad/s for 3 s | The odometry reports over 2 rad, the true turn is within 10 percent of it, and the robot stays within 0.05 m of its place |
 | N2 | Nav2 lifecycle nodes all reach `active` | Pass within 60 s |
 | N3 | AMCL pose converges after the initial pose is set | Covariance below a threshold within 15 s |
 | N4 | `NavigateToPose` to kitchen, each table, and home, three rounds | Every trip meets the success definition |

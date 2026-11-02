@@ -33,6 +33,12 @@ endforeach()
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
+  find_package(ament_cmake_pytest REQUIRED)
+  find_package(launch_testing_ament_cmake REQUIRED)
+  ament_add_pytest_test(world test/test_world.py TIMEOUT 120)
+  # Needs the simulator, so it carries the label `sim` and can be left out with ctest -LE sim.
+  add_launch_test(test/test_sim_empty.py TARGET sim_empty TIMEOUT 240)
+  set_tests_properties(sim_empty PROPERTIES LABELS sim)
 endif()
 
 ament_package()
