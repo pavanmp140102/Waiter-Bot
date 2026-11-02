@@ -11,7 +11,7 @@
 - [ ] Record the demos: one short clip per scenario, plus one full run with the dashboard. Keep each file small (under 3 MB; GIF or WebM) in `docs/demo/`.
 - [ ] Final pass on every document in `docs/`: parameter defaults, command lines, test IDs and file names match the code.
 - [ ] Fill in the **Result** section of every milestone file, with what was built, what was measured, and what differed from the plan. This is the approach record the assessment asks for.
-- [ ] Design notes: what worked, what was hard, and what the first submission got wrong, in `docs/design_notes.md`. Link [../../REVIEW.md](../../REVIEW.md).
+- [ ] Design notes: what worked, what was hard, and what the first submission got wrong, in `docs/design_notes.md`. Do not link `REVIEW.md`: it is an internal file and stays out of the repository.
 - [ ] Remove anything unused: dead launch files, staging folders from M0, old assets.
 - [ ] Check package metadata, versions and licences.
 - [ ] Run the README quick start on a clean checkout (MAN3).

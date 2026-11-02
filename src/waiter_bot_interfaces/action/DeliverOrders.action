@@ -1,0 +1,15 @@
+# Goal: tables to serve, in visiting order. Names must exist in the `tables` parameter.
+string[] tables
+---
+# Result
+string outcome        # completed, partial, kitchen_timeout, cancelled, nav_failed
+string[] delivered
+string[] skipped      # no confirmation at the table, or navigation failed
+string[] cancelled    # cancelled with CancelTable
+---
+# Feedback
+string state
+string target         # location being approached or waited at, empty when idle
+string[] pending
+string[] delivered
+float32 timer_remaining   # seconds left on the confirmation timer, 0 when none

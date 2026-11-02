@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>waiter_bot_bringup</name>
+  <version>0.1.0</version>
+  <description>Whole-system launch files, the scenario runner and the end-to-end tests.</description>
+  <maintainer email="pavanmp1402@gmail.com">Pavan Patil</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>launch_testing</exec_depend>
+  <exec_depend>launch_testing_ros</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>waiter_bot_interfaces</exec_depend>
+  <exec_depend>waiter_bot_core</exec_depend>
+  <exec_depend>waiter_bot_gazebo</exec_depend>
+  <exec_depend>waiter_bot_navigation</exec_depend>
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>ament_xmllint</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

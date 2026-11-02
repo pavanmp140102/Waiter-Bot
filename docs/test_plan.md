@@ -28,7 +28,7 @@ Measured from Gazebo ground truth after the robot has been stationary for one se
 | S2 | `ament_flake8`, `ament_pep257`, `ament_copyright`, `ament_xmllint`, `ament_cmake_lint` on all packages | Clean |
 | S3 | `xacro` then `check_urdf` on the robot; `gz sdf -k` on the world and every model | All parse without errors |
 | S4 | Locations in `cafe.yaml` against the world and the map | Each location is a free map cell with 0.4 m clearance, and matches the matching entity in `cafe.sdf` within 0.05 m |
-| S5 | `grep` for `/home/`, `ros_ws`, `defect_bot` and other absolute or foreign paths in tracked files | No matches |
+| S5 | `grep` for `/home/`, `ros_ws`, `defect_bot`, the author's user name and other absolute or foreign paths in `src/`, `docker/` and the root config files (the docs may mention them when describing the old submission) | No matches |
 | S6 | `waiter_bot_core/butler_fsm.py` and `locations.py` import nothing from `rclpy` or ROS packages | Pass |
 | S7 | `rosdep install --simulate` against the `package.xml` files | Every dependency resolves |
 | S8 | Repo size and tracked binaries | Under 15 MB, no `.blend`, `.blend1` or duplicate formats |

@@ -1,0 +1,5 @@
+# Cancel one table's order.
+string table
+---
+bool accepted
+string message        # reason when not accepted

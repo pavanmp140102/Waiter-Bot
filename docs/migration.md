@@ -1,6 +1,6 @@
 # Migration from the first submission
 
-The first submission (commit `d81d18c`, tagged `legacy-submission` in M0) was written in 48 hours for ROS 1 style tooling with ROS 2 names. [../REVIEW.md](../REVIEW.md) lists what was wrong. This file says what happens to every part. Nothing is deleted from history: the tag keeps the old tree reachable.
+The first submission (commit `d81d18c`, tagged `legacy-submission` in M0) was written in 48 hours for ROS 1 style tooling with ROS 2 names. An internal review of it found what was wrong; the findings are summarised below. This file says what happens to every part. Nothing is deleted from history: the tag keeps the old tree reachable.
 
 | Old path (under `ros_ws/src/waiter_bot_description/`) | Fate | Where it goes |
 |---|---|---|
