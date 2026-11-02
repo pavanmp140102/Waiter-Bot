@@ -51,7 +51,7 @@ src/waiter_bot_core/test/{test_fsm_*.py,test_locations.py,test_node_*.py,fake_na
 
 ## Gate
 
-T1 to T22, TN1 to TN7 and S6 pass, and S2 lint stays clean. Run `colcon test --packages-select waiter_bot_core`; it takes seconds, with no simulator.
+T1 to T24, TN1 to TN9 and S6 pass, and S2 lint stays clean. Run `colcon test --packages-select waiter_bot_core`; it takes seconds, with no simulator.
 
 ## Notes
 
@@ -66,10 +66,10 @@ Done. The state machine, the location registry and the node are built, and every
 
 Measured:
 
-- 27 logic tests (T1 to T22, including T15b) run in about 0.1 s with no ROS. T17 replays 2000 random tasks (1000 with navigation failures, 1000 without) from a fixed seed and checks the invariants after every event.
-- TN1 to TN7 pass in about 3.7 s against a fake Nav2 action server, six runs in a row with no failure.
+- 29 logic tests (T1 to T24, including T15b) run in about 0.1 s with no ROS. T17 replays 2000 random tasks (1000 with navigation failures, 1000 without) from a fixed seed and checks the invariants after every event.
+- TN1 to TN9 (10 tests) pass in about 4 s against a fake Nav2 action server, five runs in a row with no failure.
 - S6 passes: `butler_fsm.py` and `locations.py` import only the standard library.
-- The whole package: 39 tests, 0 failures, with `ament_flake8`, `ament_pep257`, `ament_copyright` and `ament_xmllint` clean.
+- The whole package: 45 tests, 0 failures, with `ament_flake8`, `ament_pep257`, `ament_copyright` and `ament_xmllint` clean.
 - Smoke run of `ros2 launch waiter_bot_core task_manager.launch.py`: the YAML parameters load (including the nested `locations`), `/butler/state` is latched and shows `idle`, and with no Nav2 an order is rejected with `nav2_unavailable` in the log. The node shuts down cleanly.
 
 What the tests found:
@@ -86,3 +86,11 @@ Differences from the plan:
 - `butler_fsm.py` is 332 lines, 311 without the licence header: slightly over the 300-line target. Most of the excess is the per-function docstrings the project requires, not logic.
 - The `fork()` warning on stderr comes from flake8's multiprocessing in a process that also hosts the node tests. It is harmless.
 
+Code review (`/code-review high` on the PR, findings posted as comments there) found ten issues, all addressed:
+
+- **Two races:** a late callback of a cancelled timer could time out the next wait (now a generation counter, test TN8), and an action goal read its result after waking, so a new goal could overwrite it (now each goal holds its own task and stored result).
+- **Goal lifecycle:** a finished task could leave a terminal goal handle behind, and `shutdown` could report a success with a stale outcome. Shutdown now completes the open task as `aborted` (test TN9).
+- **Outcomes:** cancelling every order one by one now reports `cancelled`, and a cancel on the way home records `cancelled` instead of keeping the old outcome (tests T13, T23). The error state no longer shows a target (T24).
+- **Parameters:** integers for the timing values crashed start-up although the interface doc said they were accepted. They are now accepted (test TN1b).
+- **Publishing:** one state publish per call instead of two on finish.
+- **Kept as it was:** the one-shot timer plus one-second tick per wait. The generation counter fixes the correctness problem; a single tick would make timeouts up to a second late.

@@ -31,7 +31,8 @@ Outcomes:
 | `completed` | Every order delivered, robot home | succeeded |
 | `partial` | Robot home, but at least one order skipped or cancelled | succeeded |
 | `kitchen_timeout` | Nobody loaded the food (R2, R3a), robot home | succeeded |
-| `cancelled` | The whole task was cancelled (R4a, R4b), robot home | canceled |
+| `cancelled` | The whole task was cancelled (R4a, R4b), or every order was cancelled one by one; robot home | canceled when the goal itself was cancelled, otherwise succeeded |
+| `aborted` | The task manager shut down while the task was open | aborted |
 | `nav_failed` | A trip failed after all retries: either the kitchen was unreachable (the orders are skipped and the robot goes home), or the way home failed (state `error`) | aborted |
 
 The goal is **rejected** (not aborted) for: unknown or duplicate table, empty list, `busy`, `nav2_unavailable`. The action protocol carries no reason text, so the node logs the reason as a warning (`order rejected: busy`).

@@ -34,12 +34,12 @@ def test_t12_cancel_of_a_delivered_table_is_rejected():
 
 
 def test_t13_all_tables_cancelled_before_pickup_goes_home():
-    """Nothing is loaded when every order is cancelled early, so there is no kitchen return."""
+    """Nothing is loaded when every order is cancelled early: no kitchen return, 'cancelled'."""
     bot = Bot()
     bot.start('table1', 'table2').cancel_table('table1').cancel_table('table2')
     assert bot.state == 'to_home'
     bot.arrive()
-    assert bot.visited == ['kitchen', 'home'] and bot.outcome == 'partial'
+    assert bot.visited == ['kitchen', 'home'] and bot.outcome == 'cancelled'
 
 
 def test_t14_navigation_failure_is_retried():
@@ -132,3 +132,22 @@ def test_food_is_not_onboard_after_it_is_returned():
     assert bot.fsm.snapshot().food_onboard
     bot.arrive()
     assert bot.state == 'to_home' and not bot.fsm.snapshot().food_onboard
+
+
+def test_t23_cancel_on_the_way_home_is_reported_as_cancelled():
+    """A cancel after a kitchen timeout or the last delivery still ends as 'cancelled'."""
+    bot = Bot()
+    bot.start('table1').arrive().timeout()
+    assert bot.state == 'to_home'
+    bot.cancel_all().arrive()
+    assert bot.outcome == 'cancelled'
+    done = Bot(require_kitchen_confirmation=False, require_table_confirmation=False)
+    done.start('table1').arrive(2).cancel_all().arrive()
+    assert done.outcome == 'cancelled' and done.fsm.snapshot().delivered == ('table1',)
+
+
+def test_t24_error_state_has_no_target():
+    """The error state shows no target, so a client does not think a trip is in progress."""
+    bot = Bot(nav_max_retries=0)
+    bot.start('table1').arrive().timeout().nav_failed()
+    assert bot.state == 'error' and bot.fsm.snapshot().target == ''

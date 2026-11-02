@@ -196,6 +196,13 @@ def test_tn1_missing_location_stops_startup():
         ButlerTaskManager(parameter_overrides=params)
 
 
+def test_tn1b_integer_timing_values_are_accepted():
+    """TN1: whole numbers in the YAML work for the timing parameters, not only decimals."""
+    node = ButlerTaskManager(parameter_overrides=parameters(
+        confirmation_timeout_sec=20, kitchen_return_dwell_sec=0, nav_max_retries=1))
+    node.destroy_node()
+
+
 def test_tn2_goal_runs_to_completion(system):
     """TN2: an order is accepted, progress is reported, and the result arrives."""
     s = system(**NO_WAITING)
@@ -270,3 +277,26 @@ def test_tn7_timeout_follows_simulated_time(system):
     s.set_time(106)
     result = s.result(handle)
     assert result.result.outcome == 'kitchen_timeout'
+
+
+def test_tn8_stale_timer_callback_is_ignored(system):
+    """TN8: a late callback of an earlier wait's timer must not time out the next wait."""
+    s = system()
+    s.send('table1', 'table2')
+    s.wait_state('at_kitchen')
+    stale = s.butler._timer_gen
+    assert s.confirm('kitchen').accepted
+    s.wait_state('at_table')
+    s.butler._on_timer(stale)
+    time.sleep(0.2)
+    assert s.states[-1].state == 'at_table'
+
+
+def test_tn9_shutdown_aborts_the_open_goal(system):
+    """TN9: stopping the node mid-task aborts the goal instead of reporting a success."""
+    s = system()
+    handle = s.send('table1')
+    s.wait_state('at_kitchen')
+    s.butler.shutdown()
+    result = s.result(handle)
+    assert result.status == GoalStatus.STATUS_ABORTED and result.result.outcome == 'aborted'

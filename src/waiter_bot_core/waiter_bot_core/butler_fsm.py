@@ -229,12 +229,12 @@ class ButlerFsm:
 
     def cancel_all(self):
         """Handle the whole task being cancelled: go home, via the kitchen with food onboard."""
-        if self.state in (State.IDLE, State.TO_HOME, State.ERROR):
+        if self.state in (State.IDLE, State.ERROR):
             return []
         self._outcome = 'cancelled'
-        self._drop_pending(Status.CANCELLED)
-        if self.state is State.RETURNING_FOOD:
+        if self.state in (State.TO_HOME, State.RETURNING_FOOD):
             return []
+        self._drop_pending(Status.CANCELLED)
         return [*self._stop(), *self._next_leg()]
 
     def cancel_table(self, table):
@@ -267,6 +267,7 @@ class ButlerFsm:
         if self.state is State.RETURNING_FOOD:
             return self._go_home()
         self.state = State.ERROR
+        self._target = ''
         return [Finish('nav_failed')]
 
     # -- internals -------------------------------------------------------------------------
@@ -325,8 +326,14 @@ class ButlerFsm:
         self._current = None
 
     def _finish(self):
-        """End the task at home with an outcome: completed, partial or the recorded reason."""
+        """End the task at home: completed, cancelled, partial or the recorded reason."""
         self.state = State.IDLE
         self._target = ''
-        done = all(s is Status.DELIVERED for s in self._orders.values())
-        return [Finish(self._outcome or ('completed' if done else 'partial'))]
+        statuses = set(self._orders.values())
+        if statuses == {Status.DELIVERED}:
+            default = 'completed'
+        elif statuses == {Status.CANCELLED}:
+            default = 'cancelled'
+        else:
+            default = 'partial'
+        return [Finish(self._outcome or default)]

@@ -46,6 +46,17 @@ from waiter_bot_interfaces.msg import ButlerState
 from waiter_bot_interfaces.srv import CancelTable, Confirm
 
 POSE_KEYS = ('x', 'y', 'yaw')
+UNTYPED = ParameterDescriptor(dynamic_typing=True)
+
+
+class _Task:
+    """One accepted order batch: lets its action goal wait for and return its own result."""
+
+    def __init__(self):
+        """Start with no result, so the goal waits until the machine finishes."""
+        self.done = threading.Event()
+        self.outcome = None
+        self.snapshot = None
 
 
 class ButlerTaskManager(Node):
@@ -57,14 +68,15 @@ class ButlerTaskManager(Node):
         self._lock = threading.Lock()
         self._fsm, self._locations = self._load_config()
         self._frame = self.declare_parameter('map_frame', 'map').value
-        self._done = threading.Event()
+        self._task = None
+        self._pending_task = None
         self._goal_handle = None
-        self._outcome = None
         self._nav_handle = None
         self._nav_token = 0
         self._timer = None
         self._tick = None
         self._timer_end = None
+        self._timer_gen = 0
 
         self._timer_group = MutuallyExclusiveCallbackGroup()
         self._nav = ActionClient(self, NavigateToPose, 'navigate_to_pose',
@@ -75,6 +87,7 @@ class ButlerTaskManager(Node):
         self._server = ActionServer(
             self, DeliverOrders, '/butler/deliver_orders', self._execute,
             goal_callback=self._on_goal, cancel_callback=self._on_cancel,
+            handle_accepted_callback=self._on_accepted,
             callback_group=ReentrantCallbackGroup())
         service_group = MutuallyExclusiveCallbackGroup()
         self.create_service(Confirm, '/butler/confirm', self._on_confirm,
@@ -93,41 +106,52 @@ class ButlerTaskManager(Node):
         tables = tuple(self.declare_parameter('tables', ['table1', 'table2', 'table3']).value)
         config = Config(
             tables=tables, home=home, kitchen=kitchen,
-            confirmation_timeout_sec=self.declare_parameter(
-                'confirmation_timeout_sec', 20.0).value,
+            confirmation_timeout_sec=self._number('confirmation_timeout_sec', 20.0, float),
             require_kitchen_confirmation=self.declare_parameter(
                 'require_kitchen_confirmation', True).value,
             require_table_confirmation=self.declare_parameter(
                 'require_table_confirmation', True).value,
-            kitchen_return_dwell_sec=self.declare_parameter(
-                'kitchen_return_dwell_sec', 0.0).value,
-            nav_max_retries=self.declare_parameter('nav_max_retries', 2).value)
+            kitchen_return_dwell_sec=self._number('kitchen_return_dwell_sec', 0.0, float),
+            nav_max_retries=self._number('nav_max_retries', 2, int))
         raw = {}
-        untyped = ParameterDescriptor(dynamic_typing=True)
         for name in dict.fromkeys((home, kitchen, *tables)):
             values = {}
             for key in POSE_KEYS:
                 value = self.declare_parameter(
-                    f'locations.{name}.{key}', None, untyped).value
+                    f'locations.{name}.{key}', None, UNTYPED).value
                 if value is not None:
                     values[key] = value
             raw[name] = values
         return ButlerFsm(config), LocationRegistry.from_dict(raw, home, kitchen, tables)
+
+    def _number(self, name, default, kind):
+        """Declare a numeric parameter that accepts an integer or a decimal in the YAML file."""
+        return kind(self.declare_parameter(name, default, UNTYPED).value)
 
     # -- ROS entry points ------------------------------------------------------------------
 
     def _on_goal(self, request):
         """Accept an order batch if the machine is free and Nav2 is up, and start the task."""
         with self._lock:
-            reason = ('nav2_unavailable' if not self._nav.server_is_ready()
-                      else self._fsm.check_goal(list(request.tables)))
+            if self._pending_task is not None:
+                reason = 'busy'
+            elif not self._nav.server_is_ready():
+                reason = 'nav2_unavailable'
+            else:
+                reason = self._fsm.check_goal(list(request.tables))
             if reason:
                 self.get_logger().warning(f'order rejected: {reason}')
                 return GoalResponse.REJECT
-            self._done = threading.Event()
+            self._task = self._pending_task = _Task()
             self._goal_handle = None
             self._apply(self._fsm.start(list(request.tables)))
             return GoalResponse.ACCEPT
+
+    def _on_accepted(self, goal_handle):
+        """Pair the accepted goal with its task and run it, so each goal returns its own result."""
+        with self._lock:
+            task, self._pending_task = self._pending_task, None
+        goal_handle.execute(lambda handle: self._execute(task, handle))
 
     def _on_cancel(self, goal_handle):
         """Cancel the whole task: the machine decides between home and kitchen-then-home."""
@@ -135,24 +159,25 @@ class ButlerTaskManager(Node):
             self._apply(self._fsm.cancel_all())
         return CancelResponse.ACCEPT
 
-    def _execute(self, goal_handle):
-        """Hold the action goal open until the machine finishes, then report the result."""
-        done = self._done
+    def _execute(self, task, goal_handle):
+        """Hold the action goal open until its task finishes, then report that task's result."""
         with self._lock:
-            self._goal_handle = goal_handle
-            self._publish()
-        done.wait()
+            if not task.done.is_set():
+                self._goal_handle = goal_handle
+                self._publish()
+        task.done.wait()
         with self._lock:
-            snapshot = self._fsm.snapshot()
-            outcome = self._outcome or 'cancelled'
+            if self._goal_handle is goal_handle:
+                self._goal_handle = None
+        snapshot = task.snapshot
         if goal_handle.is_cancel_requested:
             goal_handle.canceled()
-        elif outcome == 'nav_failed':
+        elif task.outcome in ('nav_failed', 'aborted'):
             goal_handle.abort()
         else:
             goal_handle.succeed()
         return DeliverOrders.Result(
-            outcome=outcome, delivered=list(snapshot.delivered),
+            outcome=task.outcome, delivered=list(snapshot.delivered),
             skipped=list(snapshot.skipped), cancelled=list(snapshot.cancelled))
 
     def _on_confirm(self, request, response):
@@ -177,6 +202,7 @@ class ButlerTaskManager(Node):
 
     def _apply(self, commands):
         """Carry out what the state machine asked for, then publish the new state."""
+        finished = None
         for command in commands:
             if isinstance(command, Navigate):
                 self._navigate(command.location)
@@ -185,11 +211,17 @@ class ButlerTaskManager(Node):
             elif isinstance(command, StopTimer):
                 self._stop_timer()
             elif isinstance(command, Finish):
-                self._outcome = command.outcome
-                self._publish()
-                self._goal_handle = None
-                self._done.set()
+                finished = command.outcome
         self._publish()
+        if finished is not None:
+            self._complete(finished)
+
+    def _complete(self, outcome):
+        """Store the task's result and release its goal, after the last state was published."""
+        task = self._task
+        task.outcome, task.snapshot = outcome, self._fsm.snapshot()
+        self._goal_handle = None
+        task.done.set()
 
     def _navigate(self, location):
         """Send a Nav2 goal for a named location, replacing any trip still in progress."""
@@ -238,33 +270,36 @@ class ButlerTaskManager(Node):
                         else self._fsm.nav_failed())
 
     def _start_timer(self, seconds):
-        """Start the one-shot confirmation timer and the one-second countdown tick."""
+        """Start the confirmation timer and a one-second countdown tick for this wait."""
         self._stop_timer()
+        gen = self._timer_gen
         self._timer_end = self.get_clock().now() + Duration(seconds=seconds)
-        self._timer = self.create_timer(seconds, self._on_timer,
+        self._timer = self.create_timer(seconds, lambda: self._on_timer(gen),
                                         callback_group=self._timer_group)
-        self._tick = self.create_timer(1.0, self._on_tick, callback_group=self._timer_group)
+        self._tick = self.create_timer(1.0, lambda: self._on_tick(gen),
+                                       callback_group=self._timer_group)
 
     def _stop_timer(self):
-        """Cancel the confirmation timer and the countdown tick."""
+        """Cancel the timers and invalidate any callback of theirs that is already queued."""
+        self._timer_gen += 1
         for timer in (self._timer, self._tick):
             if timer is not None:
                 timer.cancel()
                 self.destroy_timer(timer)
         self._timer = self._tick = self._timer_end = None
 
-    def _on_timer(self):
-        """Tell the machine nobody attended the robot in time, unless the wait already ended."""
+    def _on_timer(self, gen):
+        """Tell the machine nobody attended the robot in time, unless that wait already ended."""
         with self._lock:
-            if self._timer is None:
+            if gen != self._timer_gen:
                 return
             self._stop_timer()
             self._apply(self._fsm.timeout())
 
-    def _on_tick(self):
+    def _on_tick(self, gen):
         """Publish the state once a second while a timer runs, so the countdown stays current."""
         with self._lock:
-            if self._tick is not None:
+            if gen == self._timer_gen:
                 self._publish()
 
     def _publish(self):
@@ -284,11 +319,12 @@ class ButlerTaskManager(Node):
                 delivered=list(snap.delivered), timer_remaining=remaining))
 
     def shutdown(self):
-        """Stop the robot's trip and wake any waiting goal so the process can exit cleanly."""
+        """Stop the trip and end any open task as aborted, so no client sees a false success."""
         with self._lock:
             self._cancel_nav()
             self._stop_timer()
-            self._done.set()
+            if self._task is not None and not self._task.done.is_set():
+                self._complete('aborted')
 
 
 def main(args=None):

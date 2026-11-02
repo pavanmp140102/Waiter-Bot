@@ -51,7 +51,7 @@ All feed events into the state machine and compare the returned commands, state,
 | T10 | Cancel all while `at_kitchen` | R4a | `to_home` |
 | T11 | Cancel all while `at_table` | R4b | `returning_food`, `to_home` |
 | T12 | Cancel a table that was already delivered | D | Command rejected, state unchanged |
-| T13 | All tables cancelled before the kitchen pickup | D-c | Nothing is loaded, so `to_home` directly, with no kitchen return; outcome `partial` |
+| T13 | All tables cancelled before the kitchen pickup | D-c | Nothing is loaded, so `to_home` directly, with no kitchen return; outcome `cancelled` |
 | T14 | Navigation failure, retries left | D-e | Same goal sent again, retry counter incremented |
 | T15 | Navigation failure, retries used up at a table | D-e | Table `skipped`, next leg continues |
 | T16 | Navigation failure, retries used up going home | D-e | `error`, `nav_failed` |
@@ -62,18 +62,22 @@ All feed events into the state machine and compare the returned commands, state,
 | T20 | Rapid duplicate events (confirm and timeout together) | all | Exactly one transition, the second event ignored |
 | T21 | Food returned to the kitchen | R3b | `food_onboard` is true on the way back and false on the way home. Found by T17 |
 | T22 | Kitchen dwell on a return trip | D-f | The robot waits for the dwell timer before going home |
+| T23 | Cancel on the way home | R4 | Outcome is `cancelled`, delivered orders stay listed |
+| T24 | Error state | D-e | The snapshot shows no target |
 
 ## Task node (TN), `butler_task_manager` with a fake navigator
 
 | ID | Check | Pass criterion |
 |---|---|---|
-| TN1 | Parameters load from `cafe.yaml`; a missing location pose stops start-up with a clear error | Pass |
+| TN1 | Parameters load from `cafe.yaml`, whole numbers work for timing values; a missing location pose stops start-up with a clear error | Pass |
 | TN2 | Goal accepted, feedback flows, result reaches the client | Feedback has the expected states in order |
 | TN3 | `Confirm` and `CancelTable` services reach the state machine | Same results as T2 and T9 |
 | TN4 | `/butler/state` is transient local | A subscriber started after the change still receives the latest state |
 | TN5 | Fake navigator aborts a goal | Retry behaviour as T14 to T16 |
 | TN6 | Action cancel while a navigation goal is active | The navigation goal is cancelled and the return leg starts (R4) |
 | TN7 | A 20 s timeout under `use_sim_time` and a paused clock | The timeout does not fire until simulated time passes |
+| TN8 | A late callback of an earlier wait's timer | Ignored: it cannot time out the next wait |
+| TN9 | The node shuts down mid-task | The goal is aborted with the outcome `aborted`, never reported as a success |
 
 ## Navigation (N)
 
