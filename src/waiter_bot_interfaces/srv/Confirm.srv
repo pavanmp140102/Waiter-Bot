@@ -1,0 +1,5 @@
+# Someone attended the robot at `location` ("kitchen" or a table name).
+string location
+---
+bool accepted
+string message        # reason when not accepted
