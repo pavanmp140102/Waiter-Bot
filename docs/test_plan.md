@@ -85,7 +85,7 @@ All feed events into the state machine and compare the returned commands, state,
 |---|---|---|
 | N1 | Simulation starts headless; `/scan` at 10 Hz in simulated time with frame `lidar_link`, `/clock` advancing, TF `odom -> lidar_link` connected, the robot at rest on the floor | Pass within 60 s of launch |
 | N1b | Drive forward 0.3 m/s for 3 s of simulated time | True distance above 0.7 m, within 5 percent of the odometry's, and straight within 0.05 rad |
-| N1c | Turn on the spot at 1 rad/s for 3 s | The odometry reports over 2 rad, the true turn is within 10 percent of it, and the robot stays within 0.05 m of its place |
+| N1c | Turn on the spot at 1 rad/s for 2 s | The odometry reports over 1.2 rad, the true turn is within 10 percent of it, and the robot stays within 0.05 m of its place. A turn of about 1.8 rad keeps the angle well below the wrap at pi |
 | N2 | Nav2 lifecycle nodes all reach `active` | Pass within 60 s |
 | N3 | AMCL pose converges after the initial pose is set | Covariance below a threshold within 15 s |
 | N4 | `NavigateToPose` to kitchen, each table, and home, three rounds | Every trip meets the success definition |

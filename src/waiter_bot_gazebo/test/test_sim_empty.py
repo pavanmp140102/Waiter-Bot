@@ -21,7 +21,6 @@
 """N1: the robot spawns in the empty world, publishes its sensors and drives as commanded."""
 import math
 import os
-import random
 import time
 import unittest
 
@@ -39,7 +38,7 @@ from sensor_msgs.msg import LaserScan
 import tf2_ros
 
 # Private ROS domain and Gazebo partition, so the test never meets another running simulation.
-os.environ['ROS_DOMAIN_ID'] = str(random.randint(100, 200))
+os.environ['ROS_DOMAIN_ID'] = str(os.getpid() % 100 + 1)
 os.environ['GZ_PARTITION'] = f'waiter_bot_test_{os.getpid()}'
 
 
@@ -48,7 +47,8 @@ def generate_test_description():
     share = get_package_share_directory('waiter_bot_gazebo')
     sim = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(share, 'launch', 'sim.launch.py')),
-        launch_arguments={'headless': 'true', 'camera': 'false'}.items())
+        launch_arguments={'headless': 'true', 'camera': 'false',
+                          'ground_truth': 'true'}.items())
     return LaunchDescription([sim, launch_testing.actions.ReadyToTest()])
 
 
@@ -80,6 +80,14 @@ class TestEmptyWorld(unittest.TestCase):
         cls.cmd = cls.node.create_publisher(Twist, 'cmd_vel', 10)
         cls.tf_buffer = tf2_ros.Buffer()
         cls.tf_listener = tf2_ros.TransformListener(cls.tf_buffer, cls.node)
+        # Every test needs the robot spawned and publishing, so wait for it once, here.
+        end = time.monotonic() + 90
+        while time.monotonic() < end and not (cls.truth and cls.odoms and len(cls.scans) > 5):
+            rclpy.spin_once(cls.node, timeout_sec=0.1)
+        if not (cls.truth and cls.odoms and len(cls.scans) > 5):
+            cls.node.destroy_node()
+            rclpy.shutdown()
+            raise RuntimeError('the robot did not spawn and publish within 90 s')
 
     @classmethod
     def tearDownClass(cls):
@@ -111,9 +119,12 @@ class TestEmptyWorld(unittest.TestCase):
         """Command a velocity for some simulated seconds and return what truth and odometry saw."""
         self.spin(1.0)
         truth0, odom0, start = self.truth[-1], self.odoms[-1], self.sim_now()
+        deadline = time.monotonic() + 30 + 4 * seconds
         twist = Twist()
         twist.linear.x, twist.angular.z = linear, angular
         while self.sim_now() - start < seconds:
+            if time.monotonic() > deadline:
+                self.fail('simulated time stopped advancing while driving')
             self.cmd.publish(twist)
             self.spin(0.05)
         self.cmd.publish(Twist())
@@ -121,6 +132,7 @@ class TestEmptyWorld(unittest.TestCase):
         truth1, odom1 = self.truth[-1], self.odoms[-1]
 
         def moved(a, b):
+            """Return the straight-line distance between two poses."""
             return math.hypot(b.position.x - a.position.x, b.position.y - a.position.y)
 
         return {
@@ -134,8 +146,6 @@ class TestEmptyWorld(unittest.TestCase):
 
     def test_1_sensors_clock_and_tf(self):
         """N1: the lidar runs at 10 Hz, time advances, and the frames connect within a minute."""
-        self.wait_for(lambda: self.truth and self.odoms and len(self.scans) > 5, 90,
-                      'the robot to spawn and publish')
         self.spin(3.0)
         stamps = [s.header.stamp.sec + s.header.stamp.nanosec * 1e-9 for s in self.scans[-30:]]
         rate = (len(stamps) - 1) / (stamps[-1] - stamps[0])
@@ -146,7 +156,7 @@ class TestEmptyWorld(unittest.TestCase):
         self.wait_for(lambda: self.tf_buffer.can_transform('odom', 'lidar_link',
                                                            rclpy.time.Time()),
                       30, 'the TF chain odom -> base_footprint -> lidar_link')
-        self.assertAlmostEqual(self.truth[-1].pose.position.z, 0.0, delta=0.02,
+        self.assertAlmostEqual(self.truth[-1].pose.position.z, 0.0, delta=0.01,
                                msg='the robot rests on the floor')
 
     def test_2_drives_straight_as_odometry_says(self):
@@ -159,8 +169,8 @@ class TestEmptyWorld(unittest.TestCase):
 
     def test_3_turns_as_odometry_says(self):
         """The robot turns on the spot and the true turn is within 10 percent of odometry's."""
-        result = self.drive(0.0, 1.0, 3.0)
-        self.assertGreater(result['odom_yaw'], 2.0)
+        result = self.drive(0.0, 1.0, 2.0)
+        self.assertGreater(result['odom_yaw'], 1.2)
         self.assertAlmostEqual(result['true_yaw'], result['odom_yaw'],
                                delta=0.10 * result['odom_yaw'])
         self.assertLess(result['true_distance'], 0.05)

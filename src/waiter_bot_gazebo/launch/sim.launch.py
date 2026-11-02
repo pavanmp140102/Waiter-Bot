@@ -25,6 +25,7 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
     AppendEnvironmentVariable, DeclareLaunchArgument, ExecuteProcess, OpaqueFunction, Shutdown)
+from launch.conditions import IfCondition
 from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
@@ -39,7 +40,8 @@ def generate_launch_description():
         [gazebo_share, 'worlds', [LaunchConfiguration('world'), '.sdf']])
     robot_description = ParameterValue(Command([
         'xacro ', os.path.join(description_share, 'urdf', 'waiter_bot.urdf.xacro'),
-        ' camera:=', LaunchConfiguration('camera')]), value_type=str)
+        ' camera:=', LaunchConfiguration('camera'),
+        ' ground_truth:=', LaunchConfiguration('ground_truth')]), value_type=str)
     sim_time = {'use_sim_time': True}
 
     def simulator(context):
@@ -49,7 +51,8 @@ def generate_launch_description():
         It is started without a shell so that stopping the launch stops the simulator itself;
         a shell would die and leave the server running.
         """
-        headless = LaunchConfiguration('headless').perform(context) == 'true'
+        headless = LaunchConfiguration('headless').perform(context).lower() in (
+            'true', '1', 'yes', 'on')
         flags = ['-r', '-s', '--headless-rendering'] if headless else ['-r']
         return [ExecuteProcess(cmd=['gz', 'sim', *flags, world.perform(context)],
                                output='screen', sigterm_timeout='15', sigkill_timeout='10',
@@ -62,8 +65,11 @@ def generate_launch_description():
                               description='Run the server only, without the Gazebo GUI'),
         DeclareLaunchArgument('camera', default_value='true',
                               description='Include the front camera'),
+        DeclareLaunchArgument('ground_truth', default_value='false',
+                              description='Publish the true pose, for tests only'),
         DeclareLaunchArgument('x', default_value='0.0'),
         DeclareLaunchArgument('y', default_value='0.0'),
+        DeclareLaunchArgument('z', default_value='0.02', description='Spawn height in metres'),
         DeclareLaunchArgument('yaw', default_value='0.0'),
         # Lets Gazebo find the worlds' models and resolve package:// mesh URIs of the robot
         AppendEnvironmentVariable('GZ_SIM_RESOURCE_PATH', os.path.dirname(description_share)),
@@ -75,8 +81,12 @@ def generate_launch_description():
         Node(package='ros_gz_sim', executable='create', output='screen',
              arguments=['-name', 'waiter_bot', '-topic', 'robot_description',
                         '-x', LaunchConfiguration('x'), '-y', LaunchConfiguration('y'),
-                        '-z', '0.02', '-Y', LaunchConfiguration('yaw')]),
+                        '-z', LaunchConfiguration('z'), '-Y', LaunchConfiguration('yaw')]),
         Node(package='ros_gz_bridge', executable='parameter_bridge', output='screen',
              parameters=[{'config_file': os.path.join(gazebo_share, 'config', 'bridge.yaml')},
                          sim_time]),
+        Node(package='ros_gz_bridge', executable='parameter_bridge', output='screen',
+             condition=IfCondition(LaunchConfiguration('ground_truth')),
+             parameters=[{'config_file': os.path.join(
+                 gazebo_share, 'config', 'bridge_ground_truth.yaml')}, sim_time]),
     ])

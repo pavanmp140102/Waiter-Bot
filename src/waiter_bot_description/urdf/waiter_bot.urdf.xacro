@@ -7,6 +7,8 @@
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="waiter_bot">
   <xacro:arg name="camera" default="true"/>
+  <!-- True pose in the world: for tests only, so it is off unless asked for -->
+  <xacro:arg name="ground_truth" default="false"/>
 
   <!-- Dimensions in metres, measured from the original meshes (ground-origin coordinates) -->
   <xacro:property name="wheel_radius" value="0.0635"/>
@@ -14,8 +16,13 @@
   <xacro:property name="wheel_x" value="0.125"/>
   <xacro:property name="wheel_y" value="0.165"/>
   <xacro:property name="wheel_mass" value="0.8"/>
-  <!-- Friction along the wheel axle: low, so the four-wheel base can skid round in a turn -->
-  <xacro:property name="lateral_mu" value="0.05"/>
+  <!-- Friction along the axle (low, so the four-wheel base can skid round in a turn) and along
+       the rolling direction (high, for traction). The axle direction is the same whatever angle
+       the wheel has turned to, which is why it is the one given as fdir1. fdir1 is expressed in
+       the collision frame, which is turned 90 degrees about x so that the cylinder lies along
+       the axle: the axle is therefore the z axis of that frame. -->
+  <xacro:property name="axle_mu" value="0.05"/>
+  <xacro:property name="rolling_mu" value="1.0"/>
   <xacro:property name="body_x" value="0.567"/>
   <xacro:property name="body_y" value="0.537"/>
   <!-- Low chassis (batteries, drive) and tower (trays), with a gap between for the lidar plane -->
@@ -108,11 +115,10 @@
       <origin xyz="${sx * wheel_x} ${sy * wheel_y} 0"/>
       <axis xyz="0 1 0"/>
     </joint>
-    <!-- Low sideways friction lets the four-wheel base turn on the spot -->
     <gazebo reference="${prefix}_wheel">
-      <mu1>1.0</mu1>
-      <mu2>${lateral_mu}</mu2>
-      <fdir1>1 0 0</fdir1>
+      <mu1>${axle_mu}</mu1>
+      <mu2>${rolling_mu}</mu2>
+      <fdir1>0 0 1</fdir1>
     </gazebo>
   </xacro:macro>
   <xacro:wheel prefix="lf" mesh="LF_wheel_1.stl" sx="1" sy="1"/>
@@ -206,12 +212,16 @@
       <joint_name>lb_wheel_joint</joint_name>
       <joint_name>rb_wheel_joint</joint_name>
     </plugin>
-    <!-- True pose of the robot in the world, for tests only: nothing at run time subscribes -->
-    <plugin filename="gz-sim-pose-publisher-system" name="gz::sim::systems::PosePublisher">
-      <publish_link_pose>false</publish_link_pose>
-      <publish_model_pose>true</publish_model_pose>
-      <use_pose_vector_msg>false</use_pose_vector_msg>
-      <static_publisher>false</static_publisher>
-    </plugin>
   </gazebo>
+
+  <xacro:if value="$(arg ground_truth)">
+    <gazebo>
+      <plugin filename="gz-sim-pose-publisher-system" name="gz::sim::systems::PosePublisher">
+        <publish_link_pose>false</publish_link_pose>
+        <publish_model_pose>true</publish_model_pose>
+        <use_pose_vector_msg>false</use_pose_vector_msg>
+        <static_publisher>false</static_publisher>
+      </plugin>
+    </gazebo>
+  </xacro:if>
 </robot>

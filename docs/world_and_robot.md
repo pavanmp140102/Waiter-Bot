@@ -10,11 +10,11 @@ The original model is a SolidWorks export in millimetres. Its meshes are kept fo
 | Wheels | 127 mm diameter, 25.4 mm wide, at x = ±0.125 m, y = ±0.165 m | Same. Radius 0.0635 m, track 0.33 m |
 | Mass | `base_link` 83 kg, wheels 1.4 kg each | Body 20 kg (chassis 12, tower 8), wheels 0.8 kg each, 23.2 kg in total. Inertias are computed in the Xacro from the dimensions |
 | Drive | Gazebo Classic skid-steer plugin | Gazebo `DiffDrive` system with two joints per side, limits 1.0 m/s and 1.5 rad/s |
-| Friction | none set | `mu1` 1.0 along the wheel, `mu2` 0.05 across it, `fdir1` along the wheel. Without the direction the turn reached only 47 percent of the commanded rate |
+| Friction | none set | `mu1` 0.05 along the axle (`fdir1` is the axle), `mu2` 1.0 along the rolling direction. `fdir1` is given in the collision frame, which is turned 90 degrees about x so that the cylinder lies along the axle, so the axle is `0 0 1` there. The axle is the one direction that does not rotate with the wheel |
 | Casters | Two fixed castor links | Removed. Four driven wheels carry the robot, and the body sits 20 mm off the floor |
 | Sensors | 4 cameras and a lidar | A lidar (`gpu_lidar`, 360 samples, 10 Hz, 0.12 to 8 m) and one front camera (640 by 480, 15 Hz). `camera:=false` leaves the camera out |
 | Joint names | `RF_W`, `LF_W`, `LB_W`, `RB_w` (inconsistent case) | `lf_wheel_joint`, `rf_wheel_joint`, `lb_wheel_joint`, `rb_wheel_joint` |
-| Plugins | `libgazebo_ros2_*` (do not exist) | `gz-sim` systems: `DiffDrive`, `JointStatePublisher`, `PosePublisher` (tests only), `Sensors` with `ogre2` (in the world) |
+| Plugins | `libgazebo_ros2_*` (do not exist) | `gz-sim` systems: `DiffDrive`, `JointStatePublisher`, `PosePublisher` (only with `ground_truth:=true`, for tests), `Sensors` with `ogre2` (in the world) |
 
 The footprint is large for a café robot: 0.567 by 0.537 m, so a circumscribed radius of about 0.39 m. Aisles in the world are therefore at least 1.2 m wide, and Nav2 uses a polygon footprint, not a circle (M3).
 
@@ -33,7 +33,7 @@ Bridge (`waiter_bot_gazebo/config/bridge.yaml`), one YAML for `ros_gz_bridge par
 | `/scan` | gz to ROS | `gz.msgs.LaserScan` |
 | `/joint_states` | gz to ROS | `gz.msgs.Model` |
 | `/camera/image_raw`, `/camera/camera_info` | gz to ROS | `gz.msgs.Image`, `gz.msgs.CameraInfo` |
-| `/ground_truth/pose` | gz to ROS | `gz.msgs.Pose` (tests only) |
+| `/ground_truth/pose` | gz to ROS | `gz.msgs.Pose`, from `bridge_ground_truth.yaml`, only with `ground_truth:=true` (tests only) |
 
 ## Café world `cafe.sdf` (SDF 1.9, Gazebo Harmonic)
 

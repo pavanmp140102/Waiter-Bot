@@ -80,3 +80,14 @@ def test_wheels_are_driven_by_the_diff_drive_plugin(joint):
     """Every wheel joint is named in the DiffDrive plugin, so none is left free-spinning."""
     text = urdf()
     assert re.search(rf'<(left|right)_joint>{joint}</(left|right)_joint>', text)
+
+
+def test_ground_truth_is_off_unless_requested():
+    """The test-only pose publisher is absent by default and present with ground_truth:=true."""
+    assert 'PosePublisher' not in urdf()
+    assert 'PosePublisher' in urdf('ground_truth:=true')
+
+
+def test_wheel_friction_direction_is_the_axle():
+    """The friction direction is the axle (z of the turned collision frame), which stays put."""
+    assert urdf().count('<fdir1>0 0 1</fdir1>') == 4

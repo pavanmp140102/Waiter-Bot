@@ -138,4 +138,4 @@ Supported person behaviours: `confirm_after_sec`, `ignore`, `cancel_after_sec` (
 | `/scan` | `sensor_msgs/LaserScan` | Gazebo `gpu_lidar` |
 | `/tf`, `/tf_static` | `tf2_msgs/TFMessage` | `odom -> base_link` from Gazebo, the rest from `robot_state_publisher`, `map -> odom` from AMCL |
 | `/clock` | `rosgraph_msgs/Clock` | Gazebo, bridged |
-| `/ground_truth/pose` | `geometry_msgs/PoseStamped` | Gazebo, bridged **for tests only** |
+| `/ground_truth/pose` | `geometry_msgs/PoseStamped` | Gazebo, bridged **for tests only**, only with `ground_truth:=true` |
