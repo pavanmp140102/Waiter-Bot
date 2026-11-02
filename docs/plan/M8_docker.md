@@ -8,9 +8,9 @@
 
 ### First image (right after M0)
 
-- [ ] `docker/Dockerfile`, multi-stage: a base with ROS 2 Jazzy and Gazebo Harmonic, a stage that runs `rosdep install --from-paths src --ignore-src -y`, a stage that runs `colcon build`.
-- [ ] `.dockerignore` covering `build/`, `install/`, `log/`, `.git/`.
-- [ ] `docker/compose.yaml` with a `test` service (S, T, TN) to start.
+- [x] `docker/Dockerfile`, multi-stage: a base with ROS 2 Jazzy and Gazebo Harmonic, a stage that runs `rosdep install --from-paths src --ignore-src -y`, a stage that runs `colcon build`.
+- [x] `.dockerignore` covering `build/`, `install/`, `log/`, `.git/`.
+- [x] `docker/compose.yaml` with a `test` service (S, T, TN) to start.
 
 ### Finish (after M5)
 
@@ -42,4 +42,16 @@ DK1 to DK5. The first image gates only DK1 and DK2; the finish step gates the re
 
 ## Result
 
-(filled in when the milestone lands)
+First image done (after M0); the second half lands after M5, so this section is extended then.
+
+Measured:
+
+- DK1: `docker compose -f docker/compose.yaml build test` builds from a clean checkout in about 2 minutes once the base layers are cached. The only dependency source is `rosdep` reading the `package.xml` files, so a missing key in a manifest would fail this step. The image is 5.1 GB, most of it Gazebo Harmonic and Nav2 pulled in by the manifests.
+- DK2: `docker compose -f docker/compose.yaml run --rm test` runs the 35 tests of the seven packages in about 6 s, with 0 failures.
+
+Differences from the plan:
+
+- Two stages (`base`, `runtime`) instead of three. The `dev` stage is added when it is needed; until then the host build is the development loop.
+- The base image is the same `ros:jazzy-ros-base` digest used by the author's other ROS 2 project, so the layers are shared on a machine that has both.
+- `docs/` is excluded from the build context in `.dockerignore`, since the image never needs it.
+
