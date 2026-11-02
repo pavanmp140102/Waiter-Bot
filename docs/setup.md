@@ -33,6 +33,14 @@ colcon build --symlink-install
 source install/setup.bash
 ```
 
+## Docker
+
+```bash
+docker compose -f docker/compose.yaml run --rm test    # build the image and run the fast tests
+```
+
+The image installs only what the `package.xml` files declare. More services (end-to-end tests, the demo) arrive with later milestones.
+
 ## Run (target commands, available once the milestones land)
 
 ```bash

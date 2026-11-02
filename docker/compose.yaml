@@ -1,0 +1,22 @@
+# Services for building, testing and running Waiter-Bot (see docs/plan/M8_docker.md).
+x-common: &common
+  environment:
+    ROS_DOMAIN_ID: "42"
+    # Pins Gazebo discovery to loopback inside the container (used by the simulator services).
+    GZ_IP: "127.0.0.1"
+
+x-runtime-build: &runtime-build
+  context: ..
+  dockerfile: docker/Dockerfile
+  target: runtime
+
+services:
+  # Runs the fast tests (static checks, task logic, node tests) one package at a time, then
+  # always prints the results. The exit code is non-zero if the tests or the summary fail.
+  test:
+    <<: *common
+    build: *runtime-build
+    image: waiter-bot:runtime
+    command: >
+      bash -c "colcon test --executor sequential; rc=$$?;
+      colcon test-result --verbose || rc=1; exit $$rc"
