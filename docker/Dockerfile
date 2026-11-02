@@ -8,10 +8,12 @@ ARG ROS_IMAGE=ros:jazzy-ros-base@sha256:8eed0a4669bbf43ee331878a4c39bd8ebddea8e3
 # on the manifests alone and editing source files does not rerun the dependency install.
 FROM ${ROS_IMAGE} AS manifests
 COPY src/ /src/
-RUN find /src -type f ! -name package.xml -delete
+RUN find /src -type f ! -name package.xml -delete \
+    && find /src -mindepth 1 -type d -empty -delete
 
 FROM ${ROS_IMAGE} AS base
-ENV DEBIAN_FRONTEND=noninteractive
+# ARG, not ENV, so the setting applies to the build but does not stay in the final image.
+ARG DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-c"]
 WORKDIR /ws
 
@@ -29,6 +31,8 @@ RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["bash"]
 
+# A plain `colcon build` (not --symlink-install): the image tests a real install, where the host's
+# development build uses symlinks.
 FROM base AS runtime
 COPY src/ /ws/src/
 RUN source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build
