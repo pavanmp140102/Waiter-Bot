@@ -12,6 +12,5 @@ Waiter-Bot is a café butler robot: it takes orders for tables, collects the foo
 | [setup.md](setup.md) | What to install and how to build |
 | [migration.md](migration.md) | What happened to each file of the first (ROS 1 style) submission |
 | [plan/overview.md](plan/overview.md) | Master plan: milestones M0 to M9, order, traceability, risks |
-| [../REVIEW.md](../REVIEW.md) | Code review of the first submission that motivated this rebuild |
 
 Status: the plan is written; no milestone is implemented yet. Each milestone file in [plan/](plan/) gets a **Result** section when it lands. Together these are the "documented approach for each milestone" the assessment asks for.
