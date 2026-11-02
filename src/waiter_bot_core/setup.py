@@ -42,6 +42,8 @@ setup(
     license='MIT',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': [],
+        'console_scripts': [
+            'butler_task_manager = waiter_bot_core.task_manager:main',
+        ],
     },
 )

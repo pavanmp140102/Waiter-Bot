@@ -56,9 +56,12 @@ All feed events into the state machine and compare the returned commands, state,
 | T15 | Navigation failure, retries used up at a table | D-e | Table `skipped`, next leg continues |
 | T16 | Navigation failure, retries used up going home | D-e | `error`, `nav_failed` |
 | T17 | Random event sequences (1000, fixed seed) | all | Invariants: never two timers at once, every task ends in `idle` or `error`, home is never skipped while food is not onboard, the kitchen is never skipped when food is onboard |
+| T15b | Navigation failure going to the kitchen, retries used up | D-e | Orders skipped, `to_home`, outcome `nav_failed` |
 | T18 | Confirmation for the wrong location | D | Rejected, timer untouched |
 | T19 | Unknown table, duplicate table, empty list, goal while busy | D-g | Goal rejected with the matching reason |
 | T20 | Rapid duplicate events (confirm and timeout together) | all | Exactly one transition, the second event ignored |
+| T21 | Food returned to the kitchen | R3b | `food_onboard` is true on the way back and false on the way home. Found by T17 |
+| T22 | Kitchen dwell on a return trip | D-f | The robot waits for the dwell timer before going home |
 
 ## Task node (TN), `butler_task_manager` with a fake navigator
 

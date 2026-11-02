@@ -32,9 +32,9 @@ Outcomes:
 | `partial` | Robot home, but at least one order skipped or cancelled | succeeded |
 | `kitchen_timeout` | Nobody loaded the food (R2, R3a), robot home | succeeded |
 | `cancelled` | The whole task was cancelled (R4a, R4b), robot home | canceled |
-| `nav_failed` | A trip home failed after all retries, state `error` | aborted |
+| `nav_failed` | A trip failed after all retries: either the kitchen was unreachable (the orders are skipped and the robot goes home), or the way home failed (state `error`) | aborted |
 
-The goal is **rejected** (not aborted) with a reason in the goal response for: unknown or duplicate table, empty list, `busy`, `nav2_unavailable`.
+The goal is **rejected** (not aborted) for: unknown or duplicate table, empty list, `busy`, `nav2_unavailable`. The action protocol carries no reason text, so the node logs the reason as a warning (`order rejected: busy`).
 
 ### `srv/Confirm.srv`
 
@@ -102,7 +102,7 @@ float32 timer_remaining
 | `nav_max_retries` | int | `2` | Retries for a failed navigation goal |
 | `map_frame` | string | `map` | Frame for goal poses |
 
-A start-up check fails fast if a name in `tables`, `home` or `kitchen` has no `locations.<name>` entry.
+A start-up check fails fast if a name in `tables`, `home` or `kitchen` has no `locations.<name>` entry, or an entry lacks `x`, `y` or `yaw`. Integers are accepted where a decimal is expected.
 
 ## Package `waiter_bot_ui`
 

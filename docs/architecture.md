@@ -123,7 +123,7 @@ food_onboard = picked_up AND some order is not delivered
 
 `CancelAll` in `to_kitchen` and `at_kitchen` has `picked_up == false`, so it goes home (R4a). In the table states `picked_up == true` and the current order is undelivered, so it returns the food (R4b). Table timeouts (R3b, R6) and table cancels (R7) leave an undelivered order behind, so they end in `returning_food`. A fully delivered batch (R1, R5) goes home directly. No case is hardcoded.
 
-The full transition table with its tests is in [test_plan.md](test_plan.md) (T1 to T20).
+Arriving back at the kitchen hands the food back, so `food_onboard` is false again on the way home. The full transition table with its tests is in [test_plan.md](test_plan.md) (T1 to T20).
 
 ## 6. Threading and timing
 
