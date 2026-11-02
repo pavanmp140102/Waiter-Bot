@@ -20,7 +20,6 @@
 
 """Node tests TN1 to TN7: the task manager against a fake Nav2 server, with no simulator."""
 import os
-import random
 import threading
 import time
 
@@ -170,7 +169,7 @@ class System:
 @pytest.fixture(scope='module', autouse=True)
 def ros():
     """Initialise ROS on a private domain so these tests never meet a real system."""
-    os.environ['ROS_DOMAIN_ID'] = str(random.randint(100, 200))
+    os.environ['ROS_DOMAIN_ID'] = str(os.getpid() % 100 + 1)
     rclpy.init()
     yield
     rclpy.shutdown()

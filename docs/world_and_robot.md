@@ -2,33 +2,38 @@
 
 ## Robot `waiter_bot`
 
-The existing model is a SolidWorks export. Its geometry is kept for looks, and its physics is rebuilt. The audit below is done in M1; the numbers in the "Target" column are what M1 builds, and they are adjusted there if the audit shows a reason.
+The original model is a SolidWorks export in millimetres. Its meshes are kept for looks and its physics is rebuilt. Measured from the original meshes in M1:
 
-| Property | First submission | Target |
+| Property | Original | Built in M1 |
 |---|---|---|
-| Footprint | about 0.48 m long (castors at x ±0.24) by 0.36 m wide | Keep |
-| Height | top camera at z = 1.29 m | Keep the body visual. Lidar at about 0.21 m (existing `lidar_j`) |
-| Mass | `base_link` 83 kg, wheels 1.4 kg each | About 15 kg total, with inertias computed from simple shapes |
-| Collision | Full STL meshes (1.5 MB `base_link.stl`) | Boxes and cylinders; STL meshes for visuals only |
-| Drive | Skid steer plugin from Gazebo Classic | Gazebo `gz-sim-diff-drive-system` with two joints per side, wheel diameter 0.127 m, wheel separation 0.355 m (checked in M1) |
-| Casters | Two fixed castor links | Frictionless spheres, or removed if the four wheels carry the robot |
-| Sensors | 4 cameras and a lidar | Lidar (`gpu_lidar`, 360 samples, 10 Hz, range 0.1 to 8 m). One front camera kept for the demo view. The other cameras are dropped |
-| Joint names | `RF_W`, `LF_W`, `LB_W`, `RB_w` (inconsistent case) | `rf_wheel_joint`, `lf_wheel_joint`, `lb_wheel_joint`, `rb_wheel_joint` |
-| Plugins | `libgazebo_ros2_*` (do not exist) | `gz-sim` systems: `DiffDrive`, `JointStatePublisher`, `Sensors` with `ogre2` |
+| Body size | 0.567 m long by 0.537 m wide by 1.29 m tall, in a lower chassis and a tray tower | Same look. Collision is two boxes: a chassis (z 0.02 to 0.19 m) and a tower (z 0.25 to 1.30 m, 0.50 by 0.50 m) |
+| Wheels | 127 mm diameter, 25.4 mm wide, at x = ±0.125 m, y = ±0.165 m | Same. Radius 0.0635 m, track 0.33 m |
+| Mass | `base_link` 83 kg, wheels 1.4 kg each | Body 20 kg (chassis 12, tower 8), wheels 0.8 kg each, 23.2 kg in total. Inertias are computed in the Xacro from the dimensions |
+| Drive | Gazebo Classic skid-steer plugin | Gazebo `DiffDrive` system with two joints per side, limits 1.0 m/s and 1.5 rad/s |
+| Friction | none set | `mu1` 0.05 along the axle (`fdir1` is the axle), `mu2` 1.0 along the rolling direction. `fdir1` is given in the collision frame, which is turned 90 degrees about x so that the cylinder lies along the axle, so the axle is `0 0 1` there. The axle is the one direction that does not rotate with the wheel |
+| Casters | Two fixed castor links | Removed. Four driven wheels carry the robot, and the body sits 20 mm off the floor |
+| Sensors | 4 cameras and a lidar | A lidar (`gpu_lidar`, 360 samples, 10 Hz, 0.12 to 8 m) and one front camera (640 by 480, 15 Hz). `camera:=false` leaves the camera out |
+| Joint names | `RF_W`, `LF_W`, `LB_W`, `RB_w` (inconsistent case) | `lf_wheel_joint`, `rf_wheel_joint`, `lb_wheel_joint`, `rb_wheel_joint` |
+| Plugins | `libgazebo_ros2_*` (do not exist) | `gz-sim` systems: `DiffDrive`, `JointStatePublisher`, `PosePublisher` (only with `ground_truth:=true`, for tests), `Sensors` with `ogre2` (in the world) |
 
-Frames: `base_footprint` (REP 120 root), `base_link`, wheels, `lidar_link`, `camera_link`. Odometry frame `odom`, published by `DiffDrive`.
+The footprint is large for a café robot: 0.567 by 0.537 m, so a circumscribed radius of about 0.39 m. Aisles in the world are therefore at least 1.2 m wide, and Nav2 uses a polygon footprint, not a circle (M3).
+
+The lidar plane is at 0.211 m. The chassis collision ends at 0.19 m and the tower collision starts at 0.25 m, so the scan sees the room and not the robot's own body. The original meshes, which have the lidar inside the body, are only for looks.
+
+Frames: `base_footprint` (on the floor, REP 120 root), `base_link` (at wheel-axle height, 0.0635 m above the floor), the four wheels, `lidar_link`, `camera_link`. Odometry frame `odom`, published by `DiffDrive`.
 
 Bridge (`waiter_bot_gazebo/config/bridge.yaml`), one YAML for `ros_gz_bridge parameter_bridge`:
 
 | ROS topic | Direction | Gazebo type |
 |---|---|---|
 | `/clock` | gz to ROS | `gz.msgs.Clock` |
-| `/cmd_vel` | ROS to gz | `gz.msgs.Twist` |
+| `/cmd_vel` | ROS to gz | `gz.msgs.Twist` (ROS side `geometry_msgs/Twist`) |
 | `/odom` | gz to ROS | `gz.msgs.Odometry` |
 | `/tf` (odom to base) | gz to ROS | `gz.msgs.Pose_V` |
 | `/scan` | gz to ROS | `gz.msgs.LaserScan` |
 | `/joint_states` | gz to ROS | `gz.msgs.Model` |
-| `/ground_truth/pose` | gz to ROS | `gz.msgs.Pose` (tests only) |
+| `/camera/image_raw`, `/camera/camera_info` | gz to ROS | `gz.msgs.Image`, `gz.msgs.CameraInfo` |
+| `/ground_truth/pose` | gz to ROS | `gz.msgs.Pose`, from `bridge_ground_truth.yaml`, only with `ground_truth:=true` (tests only) |
 
 ## Café world `cafe.sdf` (SDF 1.9, Gazebo Harmonic)
 

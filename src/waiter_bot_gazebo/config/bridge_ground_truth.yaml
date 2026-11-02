@@ -1,0 +1,6 @@
+# Only started with ground_truth:=true. The true pose of the robot in the world, for tests.
+- ros_topic_name: "ground_truth/pose"
+  gz_topic_name: "/model/waiter_bot/pose"
+  ros_type_name: "geometry_msgs/msg/PoseStamped"
+  gz_type_name: "gz.msgs.Pose"
+  direction: GZ_TO_ROS
