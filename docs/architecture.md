@@ -9,7 +9,7 @@ Checked on the development machine (2026-11-02).
 | OS and ROS | Ubuntu 24.04, ROS 2 Jazzy | The first submission targeted ROS 1 and Gazebo Classic. All of it is rewritten ([migration.md](migration.md)) |
 | Simulator | Gazebo Harmonic (`gz sim` 8.15), `ros_gz_sim` 1.0.24, `ros_gz_bridge` | SDF worlds and the `gz-sim` system plugins replace Gazebo Classic's `libgazebo_ros_*` plugins |
 | Navigation | Nav2 1.3.13 (`nav2_bringup`, AMCL, map server, planners, controllers) | Nav2's `NavigateToPose` action is the only navigation interface. No custom planner |
-| Velocity type | Nav2 on Jazzy publishes `geometry_msgs/Twist` on `cmd_vel` (its Jazzy params have no stamped option). To be confirmed again in M3 | The bridge maps `/cmd_vel` as `Twist` to the Gazebo `DiffDrive` plugin |
+| Velocity type | Nav2 on Jazzy publishes `geometry_msgs/Twist` on `cmd_vel` (its Jazzy params have no stamped option). Confirmed in M3: the robot drives from Nav2's `cmd_vel` through the bridge | The bridge maps `/cmd_vel` as `Twist` to the Gazebo `DiffDrive` plugin |
 | Other packages present | `slam_toolbox`, `behaviortree_cpp` 4.10, `diff_drive_controller`, `gz_ros2_control` | `slam_toolbox` makes the map once. `behaviortree_cpp` is a stretch option (M9). `gz_ros2_control` is not needed: Gazebo's own `DiffDrive` system drives the wheels |
 | Toolchain | Python 3.12, `rclpy`, `pytest`, `colcon`, CMake 3.28 (interfaces only), Docker | Nodes are Python (D6) |
 
