@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<!-- Café chair, 0.4 m square seat, 0.9 m high. Origin at the seat centre on the floor, back on the -x side. -->
+<sdf version="1.9">
+  <model name="cafe_chair">
+    <static>true</static>
+    <link name="seat">
+      <pose>0 0 0.45 0 0 0</pose>
+      <collision name="seat_collision"><geometry><box><size>0.4 0.4 0.05</size></box></geometry></collision>
+      <visual name="seat_visual">
+        <geometry><box><size>0.4 0.4 0.05</size></box></geometry>
+        <material><ambient>0.7 0.2 0.2 1</ambient><diffuse>0.7 0.2 0.2 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="back">
+      <pose>-0.18 0 0.68 0 0 0</pose>
+      <collision name="back_collision"><geometry><box><size>0.04 0.4 0.42</size></box></geometry></collision>
+      <visual name="back_visual">
+        <geometry><box><size>0.04 0.4 0.42</size></box></geometry>
+        <material><ambient>0.7 0.2 0.2 1</ambient><diffuse>0.7 0.2 0.2 1</diffuse></material>
+      </visual>
+    </link>
+    <link name="legs">
+      <pose>0 0 0.21 0 0 0</pose>
+      <collision name="legs_collision"><geometry><box><size>0.34 0.34 0.42</size></box></geometry></collision>
+      <visual name="legs_visual">
+        <geometry><box><size>0.34 0.34 0.42</size></box></geometry>
+        <material><ambient>0.25 0.25 0.25 1</ambient><diffuse>0.25 0.25 0.25 1</diffuse></material>
+      </visual>
+    </link>
+  </model>
+</sdf>

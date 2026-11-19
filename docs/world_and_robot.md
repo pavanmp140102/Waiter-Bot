@@ -12,7 +12,7 @@ The original model is a SolidWorks export in millimetres. Its meshes are kept fo
 | Drive | Gazebo Classic skid-steer plugin | Gazebo `DiffDrive` system with two joints per side, limits 1.0 m/s and 1.5 rad/s |
 | Friction | none set | `mu1` 0.05 along the axle (`fdir1` is the axle), `mu2` 1.0 along the rolling direction. `fdir1` is given in the collision frame, which is turned 90 degrees about x so that the cylinder lies along the axle, so the axle is `0 0 1` there. The axle is the one direction that does not rotate with the wheel |
 | Casters | Two fixed castor links | Removed. Four driven wheels carry the robot, and the body sits 20 mm off the floor |
-| Sensors | 4 cameras and a lidar | A lidar (`gpu_lidar`, 360 samples, 10 Hz, 0.12 to 8 m) and one front camera (640 by 480, 15 Hz). `camera:=false` leaves the camera out |
+| Sensors | 4 cameras and a lidar | A lidar (`gpu_lidar`, 360 samples, 10 Hz, 0.45 to 8 m, the minimum hides the robot's own body, which the lidar renders) and one front camera (640 by 480, 15 Hz). `camera:=false` leaves the camera out |
 | Joint names | `RF_W`, `LF_W`, `LB_W`, `RB_w` (inconsistent case) | `lf_wheel_joint`, `rf_wheel_joint`, `lb_wheel_joint`, `rb_wheel_joint` |
 | Plugins | `libgazebo_ros2_*` (do not exist) | `gz-sim` systems: `DiffDrive`, `JointStatePublisher`, `PosePublisher` (only with `ground_truth:=true`, for tests), `Sensors` with `ogre2` (in the world) |
 

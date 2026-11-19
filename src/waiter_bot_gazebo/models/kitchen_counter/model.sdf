@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!-- Kitchen pass counter, 0.6 m deep, 3.0 m long, 0.95 m high. Origin at the centre on the floor. -->
+<sdf version="1.9">
+  <model name="kitchen_counter">
+    <static>true</static>
+    <link name="body">
+      <pose>0 0 0.475 0 0 0</pose>
+      <collision name="body_collision"><geometry><box><size>0.6 3.0 0.95</size></box></geometry></collision>
+      <visual name="body_visual">
+        <geometry><box><size>0.6 3.0 0.95</size></box></geometry>
+        <material><ambient>0.8 0.8 0.82 1</ambient><diffuse>0.8 0.8 0.82 1</diffuse></material>
+      </visual>
+    </link>
+  </model>
+</sdf>

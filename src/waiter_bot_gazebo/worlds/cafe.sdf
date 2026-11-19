@@ -1,0 +1,165 @@
+<?xml version="1.0"?>
+<!-- Café world: room 13 m by 10 m (x -7 to 6, y -3 to 7), a kitchen counter, three tables and a few columns. -->
+<sdf version="1.9">
+  <world name="cafe">
+    <physics name="1ms" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+
+    <scene>
+      <ambient>0.5 0.5 0.5 1</ambient>
+      <background>0.7 0.8 0.9 1</background>
+      <shadows>false</shadows>
+    </scene>
+
+    <light name="sun" type="directional">
+      <pose>0 0 10 0 0 0</pose>
+      <cast_shadows>false</cast_shadows>
+      <diffuse>0.9 0.9 0.9 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <model name="floor">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry><plane><normal>0 0 1</normal><size>40 40</size></plane></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><plane><normal>0 0 1</normal><size>40 40</size></plane></geometry>
+          <material><ambient>0.6 0.6 0.6 1</ambient><diffuse>0.6 0.6 0.6 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="walls">
+      <static>true</static>
+      <link name="north">
+        <pose>-0.5 7.1 1.25 0 0 0</pose>
+        <collision name="north_collision"><geometry><box><size>13.4 0.2 2.5</size></box></geometry></collision>
+        <visual name="north_visual">
+          <geometry><box><size>13.4 0.2 2.5</size></box></geometry>
+          <material><ambient>0.9 0.88 0.8 1</ambient><diffuse>0.9 0.88 0.8 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="south">
+        <pose>-0.5 -3.1 1.25 0 0 0</pose>
+        <collision name="south_collision"><geometry><box><size>13.4 0.2 2.5</size></box></geometry></collision>
+        <visual name="south_visual">
+          <geometry><box><size>13.4 0.2 2.5</size></box></geometry>
+          <material><ambient>0.9 0.88 0.8 1</ambient><diffuse>0.9 0.88 0.8 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="east">
+        <pose>6.1 2.0 1.25 0 0 0</pose>
+        <collision name="east_collision"><geometry><box><size>0.2 10.0 2.5</size></box></geometry></collision>
+        <visual name="east_visual">
+          <geometry><box><size>0.2 10.0 2.5</size></box></geometry>
+          <material><ambient>0.9 0.88 0.8 1</ambient><diffuse>0.9 0.88 0.8 1</diffuse></material>
+        </visual>
+      </link>
+      <link name="west">
+        <pose>-7.1 2.0 1.25 0 0 0</pose>
+        <collision name="west_collision"><geometry><box><size>0.2 10.0 2.5</size></box></geometry></collision>
+        <visual name="west_visual">
+          <geometry><box><size>0.2 10.0 2.5</size></box></geometry>
+          <material><ambient>0.9 0.88 0.8 1</ambient><diffuse>0.9 0.88 0.8 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <include>
+      <name>home_marker</name>
+      <uri>model://floor_marker</uri>
+      <pose>0 0 0 0 0 0.0</pose>
+    </include>
+    <include>
+      <name>kitchen_marker</name>
+      <uri>model://floor_marker</uri>
+      <pose>4 0 0 0 0 0.0</pose>
+    </include>
+    <include>
+      <name>table1_marker</name>
+      <uri>model://floor_marker</uri>
+      <pose>1.5 4 0 0 0 0.0</pose>
+    </include>
+    <include>
+      <name>table2_marker</name>
+      <uri>model://floor_marker</uri>
+      <pose>-1.5 4 0 0 0 0.0</pose>
+    </include>
+    <include>
+      <name>table3_marker</name>
+      <uri>model://floor_marker</uri>
+      <pose>-4.5 4 0 0 0 0.0</pose>
+    </include>
+    <include>
+      <name>kitchen_counter</name>
+      <uri>model://kitchen_counter</uri>
+      <pose>5.3 0 0 0 0 0.0</pose>
+    </include>
+    <include>
+      <name>table1_centre</name>
+      <uri>model://cafe_table</uri>
+      <pose>1.5 5.0 0 0 0 0.0</pose>
+    </include>
+    <include>
+      <name>table1_chair_w</name>
+      <uri>model://cafe_chair</uri>
+      <pose>0.85 5.0 0 0 0 0</pose>
+    </include>
+    <include>
+      <name>table1_chair_e</name>
+      <uri>model://cafe_chair</uri>
+      <pose>2.15 5.0 0 0 0 3.14159</pose>
+    </include>
+    <include>
+      <name>table2_centre</name>
+      <uri>model://cafe_table</uri>
+      <pose>-1.5 5.0 0 0 0 0.0</pose>
+    </include>
+    <include>
+      <name>table2_chair_w</name>
+      <uri>model://cafe_chair</uri>
+      <pose>-2.15 5.0 0 0 0 0</pose>
+    </include>
+    <include>
+      <name>table2_chair_e</name>
+      <uri>model://cafe_chair</uri>
+      <pose>-0.85 5.0 0 0 0 3.14159</pose>
+    </include>
+    <include>
+      <name>table3_centre</name>
+      <uri>model://cafe_table</uri>
+      <pose>-4.5 5.0 0 0 0 0.0</pose>
+    </include>
+    <include>
+      <name>table3_chair_w</name>
+      <uri>model://cafe_chair</uri>
+      <pose>-5.15 5.0 0 0 0 0</pose>
+    </include>
+    <include>
+      <name>table3_chair_e</name>
+      <uri>model://cafe_chair</uri>
+      <pose>-3.85 5.0 0 0 0 3.14159</pose>
+    </include>
+    <include>
+      <name>column_1</name>
+      <uri>model://column</uri>
+      <pose>-3.0 1.5 0 0 0 0.0</pose>
+    </include>
+    <include>
+      <name>column_2</name>
+      <uri>model://column</uri>
+      <pose>2.0 -1.5 0 0 0 0.0</pose>
+    </include>
+  </world>
+</sdf>

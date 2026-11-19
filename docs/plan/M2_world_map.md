@@ -6,16 +6,16 @@
 
 ## Sub-tasks
 
-- [ ] Decide the layout: final `home`, `kitchen`, `table1..3` poses, written into [../world_and_robot.md](../world_and_robot.md).
-- [ ] `worlds/cafe.sdf` (SDF 1.9): floor, walls, kitchen counter, three tables with chairs, a few obstacles, lighting, the `Sensors` and `UserCommands` and `SceneBroadcaster` systems.
-- [ ] Model folders under `models/` (`model.config`, `model.sdf`). Reuse old meshes only if converted, decimated, and under 1 MB each; otherwise use primitive shapes.
-- [ ] Floor markers for `home` and `kitchen` so the demo shows the targets.
-- [ ] `sim.launch.py` extends `GZ_SIM_RESOURCE_PATH` from the installed share directory. No absolute paths.
-- [ ] Drive the robot with `teleop_twist_keyboard` while `slam_toolbox` runs (MAN1). Save with `map_saver_cli`. Clean up the map in a pixel editor if needed.
-- [ ] `waiter_bot_navigation/maps/cafe.{yaml,pgm}` with a relative `image:` entry, resolution 0.05 m.
-- [ ] `waiter_bot_core/config/cafe.yaml` with the locations (the parameters of [../interfaces.md](../interfaces.md)).
-- [ ] Test S4: every location is free with 0.4 m clearance in the map, and matches the world entity within 0.05 m.
-- [ ] Test S8: the repository stays under 15 MB.
+- [x] Decide the layout: final `home`, `kitchen`, `table1..3` poses, written into [../world_and_robot.md](../world_and_robot.md).
+- [x] `worlds/cafe.sdf` (SDF 1.9): floor, walls, kitchen counter, three tables with chairs, a few obstacles, lighting, the `Sensors` and `UserCommands` and `SceneBroadcaster` systems.
+- [x] Model folders under `models/` (`model.config`, `model.sdf`). Reuse old meshes only if converted, decimated, and under 1 MB each; otherwise use primitive shapes.
+- [x] Floor markers for `home` and `kitchen` so the demo shows the targets.
+- [x] `sim.launch.py` extends `GZ_SIM_RESOURCE_PATH` from the installed share directory. No absolute paths.
+- [x] Drive the robot with `teleop_twist_keyboard` while `slam_toolbox` runs (MAN1). Save with `map_saver_cli`. Clean up the map in a pixel editor if needed.
+- [x] `waiter_bot_navigation/maps/cafe.{yaml,pgm}` with a relative `image:` entry, resolution 0.05 m.
+- [x] `waiter_bot_core/config/cafe.yaml` with the locations (the parameters of [../interfaces.md](../interfaces.md)).
+- [x] Test S4: every location is free with 0.4 m clearance in the map, and matches the world entity within 0.05 m.
+- [x] Test S8: the repository stays under 15 MB.
 
 ## Files created
 
@@ -40,4 +40,8 @@ src/waiter_bot_core/config/cafe.yaml
 
 ## Result
 
-(filled in when the milestone lands)
+The café world (`cafe.sdf`) loads with five floor markers, a kitchen counter, three tables with chairs and two columns, built from primitive-shape models under `models/`. The map `cafe.{yaml,pgm}` is 0.05 m, about 60 KB. It is rasterised from the world geometry (the raw SLAM scan was smeared by the drifting odometry and was replaced), with the room as free, the outside as unknown, and walls, counter, table drums, chairs and columns as occupied. `sim.launch.py world:=cafe` starts headless and the lidar returns ranges.
+
+- The lidar minimum range rose from 0.12 m to 0.45 m, because the lidar renders the robot's own body meshes (returns up to 0.42 m). [../world_and_robot.md](../world_and_robot.md) records it.
+- S3 covers the world and each model. S4 (`test_locations_map.py`) checks 0.4 m of strictly free map around every location, a world marker within 0.05 m, and the world solids occupied in the map. S8 checks the repository is under 15 MB with no `.blend` files.
+- `cafe.yaml` locations are unchanged from the provisional layout, so the M4 task logic needed no edit.
