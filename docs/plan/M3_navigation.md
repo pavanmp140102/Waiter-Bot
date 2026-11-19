@@ -32,7 +32,7 @@ N1 to N5, from [../test_plan.md](../test_plan.md): the simulation starts, Nav2 r
 
 ## Result
 
-Nav2 on Jazzy localises on the café map and drives to every named location. `navigation.launch.py` includes `nav2_bringup`'s `bringup_launch.py` with our map and parameters (`rviz:=true` opens RViz). All ten lifecycle nodes reach `active`, AMCL starts at the home pose with a small covariance, three rounds of kitchen, table1 to 3 and home all succeed (trips take 11 to 22 s, limit 60 s), and a cancel stops the robot within 2 s. The test is `test/test_navigation.py` (label `sim`, about 4 minutes).
+Nav2 on Jazzy localises on the café map and drives to every named location. `navigation.launch.py` includes `nav2_bringup`'s `bringup_launch.py` with our map and parameters (`rviz:=true` opens RViz). All twelve lifecycle nodes reach `active`; AMCL, given a loose start pose, tightens its covariance after a trip; three rounds of kitchen, table1 to 3 and home all succeed (trips take 11 to 30 s, limit 60 s), and a cancel stops the robot within 2 s. The test is `test/test_navigation.py` (label `sim`, about 4 minutes).
 
 - `cmd_vel` is `geometry_msgs/Twist` end to end (controller, velocity smoother, collision monitor, bridge), confirmed by the robot driving.
 - Controller: Regulated Pure Pursuit, which suits the skid-steer base, at 0.4 m/s. Footprint polygon 0.58 by 0.54 m, inflation 0.55 m, lidar range 0.45 to 6 m to match the sensor minimum from M2.

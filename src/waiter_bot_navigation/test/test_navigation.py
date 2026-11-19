@@ -19,6 +19,7 @@
 # THE SOFTWARE.
 
 """N2 to N5: Nav2 becomes active, AMCL converges, every café location is reached, cancel works."""
+from collections import deque
 import math
 import os
 import time
@@ -41,12 +42,12 @@ from rclpy.qos import (qos_profile_sensor_data, QoSDurabilityPolicy, QoSProfile,
 import yaml
 
 # Private ROS domain and Gazebo partition, so the test never meets another running simulation.
-os.environ['ROS_DOMAIN_ID'] = str(os.getpid() % 100 + 101)
+os.environ['ROS_DOMAIN_ID'] = str(os.getpid() % 100 + 1)
 os.environ['GZ_PARTITION'] = f'waiter_bot_nav_test_{os.getpid()}'
 
 NAV2_NODES = ['amcl', 'map_server', 'controller_server', 'planner_server', 'smoother_server',
-              'behavior_server', 'bt_navigator', 'waypoint_follower', 'velocity_smoother',
-              'collision_monitor']
+              'route_server', 'behavior_server', 'bt_navigator', 'waypoint_follower',
+              'velocity_smoother', 'collision_monitor', 'docking_server']
 POSITION_TOLERANCE = 0.30
 YAW_TOLERANCE = 0.35
 TRIP_LIMIT_SEC = 60.0
@@ -89,14 +90,21 @@ class TestNavigation(unittest.TestCase):
         with open(path) as f:
             cls.locations = yaml.safe_load(f)['butler_task_manager']['ros__parameters'][
                 'locations']
-        cls.truth, cls.amcl = [], []
-        cls.node.create_subscription(PoseStamped, 'ground_truth/pose', cls.truth.append,
-                                     qos_profile_sensor_data)
+        cls.truth, cls.amcl = deque(maxlen=200), deque(maxlen=20)
+        cls.node.create_subscription(PoseStamped, 'ground_truth/pose',
+                                     lambda m: cls.truth.append(m), qos_profile_sensor_data)
         latched = QoSProfile(depth=1, reliability=QoSReliabilityPolicy.RELIABLE,
                              durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
-        cls.node.create_subscription(PoseWithCovarianceStamped, 'amcl_pose', cls.amcl.append,
-                                     latched)
+        cls.node.create_subscription(PoseWithCovarianceStamped, 'amcl_pose',
+                                     lambda m: cls.amcl.append(m), latched)
+        cls.initial = cls.node.create_publisher(PoseWithCovarianceStamped, 'initialpose', 10)
         cls.client = ActionClient(cls.node, NavigateToPose, 'navigate_to_pose')
+        # Each test needs the robot publishing and the action server up, whatever ran before it.
+        end = time.monotonic() + 120
+        while time.monotonic() < end and not (cls.truth and cls.client.server_is_ready()):
+            rclpy.spin_once(cls.node, timeout_sec=0.1)
+        if not (cls.truth and cls.client.server_is_ready()):
+            raise RuntimeError('the robot or navigate_to_pose did not come up within 120 s')
 
     @classmethod
     def tearDownClass(cls):
@@ -131,6 +139,16 @@ class TestNavigation(unittest.TestCase):
         finally:
             self.node.destroy_client(client)
 
+    def settle(self):
+        """Wait until the robot has stopped (under 1 cm in 0.5 s), as the success test needs."""
+        for _ in range(40):
+            a = self.truth[-1].pose.position
+            self.spin(0.5)
+            b = self.truth[-1].pose.position
+            if math.hypot(b.x - a.x, b.y - a.y) < 0.01:
+                return
+        self.fail('the robot never came to rest')
+
     def goal_for(self, name):
         """Build a NavigateToPose goal for a named café location."""
         pose = self.locations[name]
@@ -160,7 +178,7 @@ class TestNavigation(unittest.TestCase):
 
     def test_1_lifecycle_nodes_active(self):
         """N2: every Nav2 lifecycle node reaches `active`."""
-        end = time.monotonic() + 90
+        end = time.monotonic() + 60
         states = {}
         while time.monotonic() < end:
             states = {n: self.lifecycle_state(n) for n in NAV2_NODES}
@@ -171,8 +189,21 @@ class TestNavigation(unittest.TestCase):
 
     def test_2_amcl_converges(self):
         """N3: the AMCL pose has a small covariance and sits near the true pose."""
-        self.assertTrue(self.client.wait_for_server(timeout_sec=60), 'no navigate_to_pose server')
-        self.wait_for(lambda: self.amcl and self.truth, 30, 'an AMCL pose')
+        # Tell AMCL the true pose with a loose covariance, drive a short trip so it has motion to
+        # correct against, then require a fresh, tight estimate near the true pose.
+        msg = PoseWithCovarianceStamped()
+        msg.header.frame_id = 'map'
+        msg.pose.pose = self.truth[-1].pose
+        msg.pose.covariance[0] = msg.pose.covariance[7] = 0.25
+        msg.pose.covariance[35] = 0.07
+        self.amcl.clear()
+        self.initial.publish(msg)
+        self.wait_for(lambda: self.amcl, 30, 'a fresh AMCL pose')
+        self.assertGreater(self.amcl[-1].pose.covariance[0], 0.1, 'the loose start was ignored')
+        handle = self.send('table1')
+        result = handle.get_result_async()
+        rclpy.spin_until_future_complete(self.node, result, timeout_sec=TRIP_LIMIT_SEC)
+        self.assertTrue(result.done(), 'the convergence trip did not finish')
         self.wait_for(lambda: self.amcl[-1].pose.covariance[0] < 0.1
                       and self.amcl[-1].pose.covariance[7] < 0.1, 15, 'a converged AMCL pose')
         est, true = self.amcl[-1].pose.pose.position, self.truth[-1].pose.position
@@ -194,7 +225,7 @@ class TestNavigation(unittest.TestCase):
                     self.spin(2.0)
                     failures.append(f'round {round_number} {name}: over {TRIP_LIMIT_SEC} s')
                     continue
-                self.spin(1.0)
+                self.settle()
                 distance, heading = self.error_to(name)
                 status = result.result().status
                 print(f'round {round_number} {name}: status {status} {took:.1f}s '
@@ -214,8 +245,12 @@ class TestNavigation(unittest.TestCase):
         self.assertGreater(math.hypot(moving.x - start.x, moving.y - start.y), 0.2, 'never moved')
         cancel = handle.cancel_goal_async()
         rclpy.spin_until_future_complete(self.node, cancel, timeout_sec=5.0)
+        self.assertEqual(cancel.result().return_code, 0, 'the cancel was not accepted')
         self.spin(2.0)
         a = self.truth[-1].pose.position
         self.spin(1.0)
         b = self.truth[-1].pose.position
         self.assertLess(math.hypot(b.x - a.x, b.y - a.y), 0.02, 'still moving 2 s after cancel')
+        result = handle.get_result_async()
+        rclpy.spin_until_future_complete(self.node, result, timeout_sec=5.0)
+        self.assertEqual(result.result().status, GoalStatus.STATUS_CANCELED)
