@@ -40,8 +40,8 @@ src/waiter_bot_core/config/cafe.yaml
 
 ## Result
 
-The café world (`cafe.sdf`) loads with five floor markers, a kitchen counter, three tables with chairs and two columns, built from primitive-shape models under `models/`. The saved map is `cafe.{yaml,pgm}` at 0.05 m, about 157 KB. `sim.launch.py world:=cafe` starts headless and the lidar returns ranges.
+The café world (`cafe.sdf`) loads with five floor markers, a kitchen counter, three tables with chairs and two columns, built from primitive-shape models under `models/`. The map `cafe.{yaml,pgm}` is 0.05 m, about 60 KB. It is rasterised from the world geometry (the raw SLAM scan was smeared by the drifting odometry and was replaced), with the room as free, the outside as unknown, and walls, counter, table drums, chairs and columns as occupied. `sim.launch.py world:=cafe` starts headless and the lidar returns ranges.
 
 - The lidar minimum range rose from 0.12 m to 0.45 m, because the lidar renders the robot's own body meshes (returns up to 0.42 m). [../world_and_robot.md](../world_and_robot.md) records it.
-- S3 covers the world and each model. S4 (`test_locations_map.py`) checks 0.4 m of free map around every location and a world marker within 0.05 m. S8 checks the repository is under 15 MB with no `.blend` files.
+- S3 covers the world and each model. S4 (`test_locations_map.py`) checks 0.4 m of strictly free map around every location, a world marker within 0.05 m, and the world solids occupied in the map. S8 checks the repository is under 15 MB with no `.blend` files.
 - `cafe.yaml` locations are unchanged from the provisional layout, so the M4 task logic needed no edit.
