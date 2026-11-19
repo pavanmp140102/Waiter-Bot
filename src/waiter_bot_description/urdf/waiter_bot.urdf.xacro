@@ -181,7 +181,8 @@
             <max_angle>3.14159</max_angle>
           </horizontal>
         </scan>
-        <range><min>0.12</min><max>8.0</max></range>
+        <!-- The lidar renders the robot's own body meshes, which return up to 0.42 m; 0.45 m hides them -->
+        <range><min>0.45</min><max>8.0</max></range>
       </ray>
     </sensor>
   </gazebo>

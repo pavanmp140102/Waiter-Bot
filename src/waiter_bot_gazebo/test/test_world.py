@@ -26,17 +26,29 @@ import subprocess
 from ament_index_python.packages import get_package_share_directory
 import pytest
 
+MODELS_DIR = os.path.join(get_package_share_directory('waiter_bot_gazebo'), 'models')
+MODELS = sorted(glob.glob(os.path.join(MODELS_DIR, '*', 'model.sdf')))
 WORLDS = sorted(glob.glob(os.path.join(
     get_package_share_directory('waiter_bot_gazebo'), 'worlds', '*.sdf')))
 
 
 def test_worlds_exist():
-    """At least the empty world is installed."""
+    """The empty world and the café world are installed, so the simulator has worlds to load."""
     assert any(w.endswith('empty.sdf') for w in WORLDS)
+    assert any(w.endswith('cafe.sdf') for w in WORLDS)
 
 
 @pytest.mark.parametrize('world', WORLDS)
 def test_world_is_valid_sdf(world):
-    """`gz sdf -k` accepts the world."""
-    out = subprocess.run(['gz', 'sdf', '-k', world], capture_output=True, text=True)
+    """`gz sdf -k` accepts the world, with its `model://` includes resolved."""
+    env = dict(os.environ, SDF_PATH=MODELS_DIR)
+    out = subprocess.run(['gz', 'sdf', '-k', world], capture_output=True, text=True, env=env)
+    assert out.returncode == 0 and 'Valid' in out.stdout, out.stdout + out.stderr
+
+
+@pytest.mark.parametrize('model', MODELS)
+def test_model_is_valid_sdf(model):
+    """`gz sdf -k` accepts every model the café world loads, and it has a model.config."""
+    assert os.path.isfile(os.path.join(os.path.dirname(model), 'model.config'))
+    out = subprocess.run(['gz', 'sdf', '-k', model], capture_output=True, text=True)
     assert out.returncode == 0 and 'Valid' in out.stdout, out.stdout + out.stderr

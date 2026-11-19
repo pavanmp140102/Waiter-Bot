@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!-- Round drum café table, 0.8 m across, 0.75 m high, solid from floor to top so that the lidar sees its full width. Origin at the table centre on the floor. -->
+<sdf version="1.9">
+  <model name="cafe_table">
+    <static>true</static>
+    <link name="drum">
+      <pose>0 0 0.375 0 0 0</pose>
+      <collision name="drum_collision"><geometry><cylinder><radius>0.4</radius><length>0.75</length></cylinder></geometry></collision>
+      <visual name="drum_visual">
+        <geometry><cylinder><radius>0.4</radius><length>0.75</length></cylinder></geometry>
+        <material><ambient>0.55 0.35 0.2 1</ambient><diffuse>0.55 0.35 0.2 1</diffuse></material>
+      </visual>
+    </link>
+  </model>
+</sdf>

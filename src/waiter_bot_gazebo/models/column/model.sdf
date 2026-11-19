@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!-- Square column, 0.5 m by 0.5 m, 2.5 m high, used as an obstacle. -->
+<sdf version="1.9">
+  <model name="column">
+    <static>true</static>
+    <link name="body">
+      <pose>0 0 1.25 0 0 0</pose>
+      <collision name="body_collision"><geometry><box><size>0.5 0.5 2.5</size></box></geometry></collision>
+      <visual name="body_visual">
+        <geometry><box><size>0.5 0.5 2.5</size></box></geometry>
+        <material><ambient>0.65 0.65 0.65 1</ambient><diffuse>0.65 0.65 0.65 1</diffuse></material>
+      </visual>
+    </link>
+  </model>
+</sdf>
